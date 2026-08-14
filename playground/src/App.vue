@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ColorPopover, ColorSurface } from 'vue-tray-color-picker'
+import { ColorPicker, ColorPopover, ColorSurface } from 'vue-tray-color-picker'
 
 /** Off the ladder in every direction: muted, near-grey, too dark, too pale, and
     a brand blue that is simply more saturated than any rung. */
@@ -22,6 +22,11 @@ const clipped = ref<string | null>('#00dbcb')
 /** The seam: same surface, someone else's container. */
 const inline = ref<string | null>('#d33e8a')
 const inlineOpen = ref(false)
+
+const brand = ref<string | null>('#1bc98e')
+const background = ref<string | null>(null)
+const shared = ref<string | null>('#e64759')
+const alsoShared = ref<string | null>('#8e5dca')
 </script>
 
 <template>
@@ -56,6 +61,67 @@ const inlineOpen = ref(false)
       range="full"
       class="boxed"
     />
+  </section>
+
+  <section class="case">
+    <h2 class="case__title">
+      The tray
+    </h2>
+    <p class="case__note">
+      Presets, then anything mixed in the surface. Committed:
+      <code>{{ brand ?? 'null' }}</code>
+    </p>
+    <ColorPicker
+      v-model="brand"
+      range="full"
+      recent-key="pg:brand"
+    />
+  </section>
+
+  <section class="case">
+    <h2 class="case__title">
+      Clearable, with a CSS-variable default
+    </h2>
+    <p class="case__note">
+      The default is <code>var(--pg-default)</code>, which the surface cannot decompose —
+      it is read back off the trigger when the tray opens. Committed:
+      <code>{{ background ?? 'null (using the default)' }}</code>
+    </p>
+    <ColorPicker
+      v-model="background"
+      range="full"
+      clearable
+      default-color="var(--pg-default)"
+      recent-key="pg:background"
+      class="with-default"
+    />
+  </section>
+
+  <section class="case">
+    <h2 class="case__title">
+      Separate histories
+    </h2>
+    <p class="case__note">
+      Two pickers, two keys. Mix a colour in one; it must not appear in the other.
+      Then the third shares the first's key and must show it.
+    </p>
+    <div class="pickers">
+      <ColorPicker
+        v-model="shared"
+        range="full"
+        recent-key="pg:a"
+      />
+      <ColorPicker
+        v-model="alsoShared"
+        range="full"
+        recent-key="pg:b"
+      />
+      <ColorPicker
+        v-model="shared"
+        range="full"
+        recent-key="pg:a"
+      />
+    </div>
   </section>
 
   <section class="case">
@@ -234,6 +300,15 @@ const inlineOpen = ref(false)
   --vtcp-surface: light-dark(#fffbeb, #2a1f05);
   --vtcp-text: light-dark(#78350f, #fde68a);
   --vtcp-border: light-dark(#fbbf24, #92400e);
+}
+
+.with-default {
+  --pg-default: #00dbcb;
+}
+
+.pickers {
+  display: flex;
+  gap: 1rem;
 }
 
 .swatch {

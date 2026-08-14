@@ -11,6 +11,9 @@ export interface ColorPickerLabels {
   save: string
   cancel: string
   close: string
+  selectColor: string
+  useDefault: string
+  custom: string
 }
 
 export const DEFAULT_LABELS: ColorPickerLabels = {
@@ -22,6 +25,9 @@ export const DEFAULT_LABELS: ColorPickerLabels = {
   save: 'Save',
   cancel: 'Cancel',
   close: 'Close',
+  selectColor: 'Select colour',
+  useDefault: 'Use default',
+  custom: 'Custom colour',
 }
 
 export function withDefaults(

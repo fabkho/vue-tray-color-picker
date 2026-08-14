@@ -1,7 +1,12 @@
 import './style.css'
 
+export { default as ColorPicker } from './ColorPicker.vue'
 export { default as ColorPopover } from './ColorPopover.vue'
 export { default as ColorSurface } from './ColorSurface.vue'
+export { useRecentColors } from './recents'
+
+export { DEFAULT_SUGGESTIONS } from './suggestions'
+export type { ColorSuggestion } from './suggestions'
 
 export {
   expandHex,

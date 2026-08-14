@@ -88,6 +88,10 @@ function syncFromAxes() {
 
 watch(hexInput, (value) => {
   if (!isHex(value)) return
+  // `adopt` writes the field in upper case, which lands back here. Re-adopting
+  // would overwrite the draft with that upper-cased copy and emit it, so a
+  // caller's `#7a8b99` would come back as `#7A8B99`.
+  if (value.toLowerCase() === draft.value.toLowerCase()) return
   adopt(value, false)
   publish()
 })
