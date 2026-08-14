@@ -22,8 +22,14 @@ export default tseslint.config(
       }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-console': 'error',
+      // TypeScript resolves globals; the ESLint rule only knows its own env list
+      // and would reject every DOM type.
+      'no-undef': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
+      // Optional props are optional on purpose — the components fall back
+      // internally rather than pretending a default exists.
+      'vue/require-default-prop': 'off',
     },
   },
   {

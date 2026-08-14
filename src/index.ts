@@ -1,3 +1,7 @@
+import './style.css'
+
+export { default as ColorSurface } from './ColorSurface.vue'
+
 export {
   expandHex,
   FULL_LIGHTNESS_STEPS,
@@ -13,4 +17,7 @@ export {
   VIVID_SATURATION_INDEX,
 } from './color'
 
+export { DEFAULT_LABELS } from './labels'
+
 export type { Axes, ColorRange, Hsl } from './color'
+export type { ColorPickerLabels } from './labels'

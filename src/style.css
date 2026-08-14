@@ -1,0 +1,240 @@
+/**
+ * Theming contract.
+ *
+ * Every visual value resolves through three tiers, in this order:
+ *   --vtcp-*  this component only
+ *   --ui-*    your design system, adopted by anything that reads the same names
+ *   literal   the default, so the component is correct with no theme at all
+ *
+ * The chain resolves into private `--_*` properties that the rules below
+ * consume. That indirection is load-bearing: declaring `--vtcp-x` here would
+ * out-specify a consumer's `:root { --vtcp-x: … }` and their override would
+ * silently do nothing.
+ *
+ * Dark mode follows `color-scheme` via `light-dark()`, so no class or data
+ * attribute convention is imposed on the host.
+ */
+
+.vtcp {
+  --_surface: var(--vtcp-surface, var(--ui-surface, light-dark(#fff, #1e1e21)));
+  --_text: var(--vtcp-text, var(--ui-text, light-dark(#18181b, #e4e4e7)));
+  --_text-muted: var(--vtcp-text-muted, var(--ui-text-muted, light-dark(#71717a, #a1a1aa)));
+  --_border: var(--vtcp-border, var(--ui-border, light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 12%))));
+  --_shadow: var(--vtcp-shadow, var(--ui-shadow, 0 3px 6px rgb(0 0 0 / 15%)));
+  --_radius: var(--vtcp-radius, var(--ui-radius, 0.75rem));
+  --_duration: var(--vtcp-duration, var(--ui-duration, 340ms));
+
+  /* Sampled underdamped spring: one soft overshoot, then settled. A cubic-bezier
+     can only overshoot once and cannot express the tail. */
+  --_ease: var(--vtcp-ease, var(--ui-ease, linear(
+    0, 0.04 4%, 0.134 8%, 0.255 12%, 0.384 16%, 0.508 20%, 0.62 24%, 0.717 28%,
+    0.814 33%, 0.899 39%, 0.962 46%, 0.998 54%, 1.013 63%, 1.014 74%, 1.009 86%, 1
+  )));
+
+  --_swatch-size: var(--vtcp-swatch-size, 2.25rem);
+  --_gap: var(--vtcp-gap, 0.625rem);
+
+  box-sizing: border-box;
+  color: var(--_text);
+  font-family: inherit;
+}
+
+.vtcp *,
+.vtcp *::before,
+.vtcp *::after {
+  box-sizing: border-box;
+}
+
+/* The host's global motion reset does not come with this package. */
+@media (prefers-reduced-motion: reduce) {
+  .vtcp,
+  .vtcp *,
+  .vtcp *::before,
+  .vtcp *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+}
+
+/* ─── Surface ─────────────────────────────────────────────────────────────── */
+
+.vtcp-surface {
+  display: grid;
+  gap: 1.125rem;
+  width: 16rem;
+  padding: 1rem;
+  border-radius: var(--_radius);
+  background: var(--_surface);
+}
+
+.vtcp-surface__head {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.vtcp-surface__preview {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 30%, rgb(255 255 255 / 55%), transparent 60%),
+    var(--preview);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+}
+
+.vtcp-surface__bands {
+  display: grid;
+  flex: 1;
+  gap: var(--_gap);
+}
+
+.vtcp-band {
+  width: 100%;
+  height: 0.75rem;
+  appearance: none;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--from), var(--to));
+  cursor: pointer;
+}
+
+.vtcp-band--hue {
+  background: linear-gradient(
+    to right,
+    hsl(0deg 72% 55%) 0%, hsl(60deg 72% 55%) 17%, hsl(120deg 72% 55%) 33%,
+    hsl(180deg 72% 55%) 50%, hsl(240deg 72% 55%) 67%, hsl(300deg 72% 55%) 83%,
+    hsl(360deg 72% 55%) 100%
+  );
+}
+
+.vtcp-band:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.vtcp-band::-webkit-slider-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  appearance: none;
+  border: 2px solid var(--_surface);
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: var(--_shadow);
+}
+
+.vtcp-band::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--_surface);
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: var(--_shadow);
+}
+
+.vtcp-shades {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--_gap);
+}
+
+.vtcp-shade {
+  --sphere:
+    radial-gradient(circle at 30% 30%, rgb(255 255 255 / 55%), transparent 60%),
+    var(--color);
+
+  width: var(--_swatch-size);
+  height: var(--_swatch-size);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  /* A hairline, so a near-white rung does not vanish into the surface. */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+  background: var(--sphere);
+  cursor: pointer;
+  transition:
+    transform var(--_duration) var(--_ease),
+    box-shadow var(--_duration) var(--_ease);
+}
+
+.vtcp-shade:hover:not(:disabled) {
+  transform: translateY(-0.25rem) scale(1.1);
+  box-shadow: var(--_shadow);
+}
+
+.vtcp-shade:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* A band in the swatch's own colour: no foreign colour enters the surface. */
+.vtcp-shade[aria-checked='true'] {
+  --ring: 0 0 0 4px color-mix(in srgb, var(--color) 40%, transparent);
+
+  box-shadow: var(--ring);
+}
+
+.vtcp-shade[aria-checked='true']:hover:not(:disabled) {
+  box-shadow: var(--ring), var(--_shadow);
+}
+
+.vtcp-hex {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--_border);
+  border-radius: calc(var(--_radius) / 2);
+  background: transparent;
+  color: inherit;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.vtcp-hex[aria-invalid='true'] {
+  border-color: light-dark(#dc2626, #f87171);
+}
+
+.vtcp-surface__footer {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.vtcp-action {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.vtcp-action--secondary {
+  border-color: var(--_border);
+  background: transparent;
+  color: var(--_text);
+}
+
+.vtcp-action--primary {
+  background: var(--preview, currentcolor);
+  color: #fff;
+  mix-blend-mode: normal;
+}
+
+.vtcp-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.vtcp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
