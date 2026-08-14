@@ -36,6 +36,8 @@ export default tseslint.config(
     files: ['tests/**/*.ts'],
     rules: {
       'no-console': 'off',
+      // Test hosts are defined inline, next to the behaviour they set up.
+      'vue/one-component-per-file': 'off',
     },
   },
   {

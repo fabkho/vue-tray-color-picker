@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { autoUpdate, computePosition, flip, offset, shift, type Placement } from '@floating-ui/dom'
-import { onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
+import { onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
 
 /**
  * The default floating layer, and the designated swap-out point: a consumer with
@@ -33,7 +33,9 @@ const open = defineModel<boolean>('open', { default: false })
 const triggerEl = useTemplateRef('triggerEl')
 const panelEl = useTemplateRef('panelEl')
 
-const panelId = `vtcp-popover-${Math.random().toString(36).slice(2, 9)}`
+/** Must be SSR-stable: a random id renders differently on the server and the
+    client, and hydration reports a mismatch on both id and aria-controls. */
+const panelId = useId()
 
 const triggerAttrs = ref<Record<string, string>>({
   'aria-haspopup': 'dialog',
