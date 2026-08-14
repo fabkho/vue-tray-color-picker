@@ -139,9 +139,19 @@ function applyCustom(color: string) {
 }
 
 function closeSurface() {
-  if (commit === 'immediate') remember(modelValue, isPreset)
   surfaceOpen.value = false
 }
+
+/**
+ * Immediate mode has no footer, so the surface never emits `close` — the panel
+ * goes away through Escape, an outside click or the trigger instead. Watching
+ * the open state catches every one of those; hooking the close event caught
+ * none of them, and the history stayed empty.
+ */
+watch(surfaceOpen, (open) => {
+  if (open || commit !== 'immediate') return
+  remember(modelValue, isPreset)
+})
 </script>
 
 <template>

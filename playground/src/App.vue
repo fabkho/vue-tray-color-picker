@@ -27,6 +27,7 @@ const brand = ref<string | null>('#1bc98e')
 const background = ref<string | null>(null)
 const shared = ref<string | null>('#e64759')
 const alsoShared = ref<string | null>('#8e5dca')
+const liveTray = ref<string | null>('#e2a04f')
 </script>
 
 <template>
@@ -122,6 +123,23 @@ const alsoShared = ref<string | null>('#8e5dca')
         recent-key="pg:a"
       />
     </div>
+  </section>
+
+  <section class="case">
+    <h2 class="case__title">
+      Tray in immediate mode
+    </h2>
+    <p class="case__note">
+      The surface writes as you drag and has no footer. The history must stay empty until
+      the panel is dismissed, and then hold one entry. Live:
+      <code>{{ liveTray ?? 'null' }}</code>
+    </p>
+    <ColorPicker
+      v-model="liveTray"
+      range="full"
+      commit="immediate"
+      recent-key="pg:live"
+    />
   </section>
 
   <section class="case">
