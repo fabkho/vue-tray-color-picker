@@ -1,7 +1,189 @@
 # vue-tray-color-picker
 
-An opinionated Vue 3 colour picker: a floating swatch tray over a constrained
-hue and shade ladder.
+[![CI](https://github.com/fabkho/vue-tray-color-picker/actions/workflows/ci.yml/badge.svg)](https://github.com/fabkho/vue-tray-color-picker/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/vue-tray-color-picker?colorA=18181b&colorB=4fc08d)](https://www.npmjs.com/package/vue-tray-color-picker)
+[![license](https://img.shields.io/npm/l/vue-tray-color-picker?colorA=18181b&colorB=4fc08d)](./LICENSE)
 
-> Under construction. See [#1](https://github.com/fabkho/vue-tray-color-picker/issues/1)
-> for the spec and the implementation tickets.
+An opinionated Vue 3 colour picker: a floating swatch tray over a constrained
+hue and shade ladder, so every colour a user can reach is one worth shipping.
+
+## The problem
+
+Colour pickers come in two shapes, and both fail the same job.
+
+An **unconstrained HSV square** lets anyone pick `#8B7355` for a brand accent.
+It is technically a colour. It is also mud, and now it is in your product,
+attached to a customer's account, showing up in every chart.
+
+A **fixed palette** never produces mud, but the moment none of its swatches is
+right, there is nowhere to go.
+
+This picker takes the middle: pick a hue, get five shades of it, all of them
+usable. The constraint *is* the feature. When you genuinely need an exact value
+— a surface colour, a brand match — switch to the full range and type hex.
+
+## Install
+
+```sh
+npm i vue-tray-color-picker
+```
+
+```ts
+import { ColorPicker } from 'vue-tray-color-picker'
+import 'vue-tray-color-picker/style.css'
+```
+
+The stylesheet is a separate import on purpose: nothing is injected, so load
+order stays yours.
+
+## Usage
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { ColorPicker } from 'vue-tray-color-picker'
+
+const color = ref<string | null>('#1bc98e')
+</script>
+
+<template>
+  <ColorPicker v-model="color" />
+</template>
+```
+
+Surface and theme colours need greys and exact values:
+
+```vue
+<ColorPicker v-model="background" range="full" clearable default-color="var(--surface)" />
+```
+
+## What it does not do
+
+- **No alpha channel.** Hex in, hex out, fully opaque.
+- **No colour spaces beyond sRGB hex.** An OKLCH ladder would give perceptually
+  even shades across hues and is the most promising future change, but it would
+  alter which colours are reachable.
+
+## How the ladder works
+
+Three axes: a continuous hue, a three-step saturation scale, and a five-rung
+lightness ladder. `range="identity"` (the default) keeps to the legible middle
+and pins saturation to vivid — for an entity's own colour, where every reachable
+value has to work as a label and a chart series. `range="full"` reaches toward
+black and white and unlocks the greyscale rung plus hex entry.
+
+**The ring tells the truth.** It marks the rung whose colour *is* the current
+value, compared exactly. Open the picker on something the ladder cannot express
+— a muted slate, a near-grey, most brand palettes — and no rung is ringed,
+because none of them is that colour. Pointing at the nearest one would claim a
+colour the preview does not show. Touch any control and the ring appears and
+stays.
+
+Opening the picker never rewrites your value. Save without touching anything and
+you get back exactly what you passed in, byte for byte.
+
+## Bringing your own floating layer
+
+`ColorPopover` is the default and the designated swap-out point. `ColorSurface`
+works standalone — render it in your own dropdown, a modal, or inline:
+
+```vue
+<MyDropdown>
+  <ColorSurface v-model="color" range="full" @close="close" />
+</MyDropdown>
+```
+
+Nothing else in the package depends on `ColorPopover`.
+
+## Theming
+
+Every visual value resolves through three tiers, first match wins:
+
+1. `--vtcp-*` — this component
+2. `--ui-*` — your design system, adopted by anything reading the same names
+3. a literal default, so it looks right with no theme at all
+
+```css
+:root {
+  --vtcp-radius: 0.25rem;
+  --vtcp-swatch-size: 1.75rem;
+}
+```
+
+| Property | Default |
+| --- | --- |
+| `--vtcp-surface` | `light-dark(#fff, #1e1e21)` |
+| `--vtcp-text` | `light-dark(#18181b, #e4e4e7)` |
+| `--vtcp-text-muted` | `light-dark(#71717a, #a1a1aa)` |
+| `--vtcp-border` | `light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 12%))` |
+| `--vtcp-shadow` | `0 3px 6px rgb(0 0 0 / 15%)` |
+| `--vtcp-radius` | `0.75rem` |
+| `--vtcp-duration` | `340ms` |
+| `--vtcp-ease` | a sampled spring, one soft overshoot |
+| `--vtcp-swatch-size` | `2.25rem` |
+| `--vtcp-gap` | `0.625rem` |
+
+**Dark mode** is `light-dark()` against the inherited `color-scheme`. There is no
+class or data-attribute convention to adopt — but you do need to declare
+`color-scheme` somewhere above the picker, or it resolves light:
+
+```css
+:root { color-scheme: light dark; }
+```
+
+It is deliberately not declared on the component: that would override a host
+forcing one scheme on purpose.
+
+Motion is suppressed under `prefers-reduced-motion` by the package's own
+stylesheet.
+
+## API
+
+### `<ColorPicker>`
+
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `modelValue` | `string \| null` | — | Hex, or null for unset |
+| `suggestions` | `ColorSuggestion[]` | six presets | One-tap swatches |
+| `defaultColor` | `string` | `#2b6af8` | Shown while unset; may be a CSS variable |
+| `range` | `'identity' \| 'full'` | `'identity'` | |
+| `commit` | `'confirm' \| 'immediate'` | `'confirm'` | `immediate` drops the footer and writes as you move |
+| `clearable` | `boolean` | `false` | Offers a swatch that unsets the value |
+| `disabled` | `boolean` | `false` | |
+| `placement` | `Placement` | `'bottom-start'` | |
+| `recentKey` | `string \| null` | `'vtcp:recent'` | Scope per field; `null` disables persistence |
+| `recentLimit` | `number` | `3` | |
+| `labels` | `Partial<ColorPickerLabels>` | English | Every user-facing string |
+
+Emits `update:modelValue` with a hex string, or `null` when cleared.
+
+### `<ColorSurface>`
+
+The panel alone: `modelValue`, `range`, `commit`, `disabled`, `labels`. Emits
+`update:modelValue` and `close`.
+
+### `<ColorPopover>`
+
+The floating layer: `open` (v-model), `placement`, `gap`, `disabled`. Slots
+`#trigger="{ open, toggle, triggerAttrs }"` and `#default="{ close }"`.
+
+### Colour maths
+
+`hexToHsl`, `hslToHex`, `isHex`, `expandHex`, `shadesFor`, `resolveAxes`,
+`nearestStepIndex`, `lightnessSteps`, and the step tables — all pure, all
+exported, usable without the components.
+
+## Accessibility
+
+Both swatch groups are radio groups: one tab stop, arrows move and select, Home
+and End reach the ends. The floating layer traps Tab, closes on Escape and on an
+outside click, and returns focus to the trigger. Every swatch has a name — a
+preset's label, or its hex for a mixed colour.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Licence
+
+MIT
