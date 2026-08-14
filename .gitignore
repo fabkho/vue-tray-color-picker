@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.local
+.DS_Store
+.vitest-reports/
+playwright-report/
+test-results/
