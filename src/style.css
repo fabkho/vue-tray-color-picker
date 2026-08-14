@@ -11,8 +11,15 @@
  * out-specify a consumer's `:root { --vtcp-x: … }` and their override would
  * silently do nothing.
  *
- * Dark mode follows `color-scheme` via `light-dark()`, so no class or data
- * attribute convention is imposed on the host.
+ * Dark mode is `light-dark()` against the *inherited* `color-scheme`, so no
+ * class or data attribute convention is imposed on the host — but the host must
+ * declare `color-scheme` somewhere above the picker for it to have anything to
+ * follow. `:root { color-scheme: light dark }` follows the system;
+ * `color-scheme: dark` forces it.
+ *
+ * Deliberately not declared here. Setting it on the component would override a
+ * host that forces one scheme on purpose, and the picker would sit in dark mode
+ * inside a light-only app.
  */
 
 .vtcp {
