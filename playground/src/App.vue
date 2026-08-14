@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ColorSurface } from 'vue-tray-color-picker'
+import { ColorPopover, ColorSurface } from 'vue-tray-color-picker'
 
 /** Off the ladder in every direction: muted, near-grey, too dark, too pale, and
     a brand blue that is simply more saturated than any rung. */
@@ -16,6 +16,12 @@ const identity = ref<string | null>('#1bc98e')
 const full = ref<string | null>('#f2f4f6')
 const unset = ref<string | null>(null)
 const live = ref<string | null>('#8e5dca')
+
+const floating = ref<string | null>('#e2a04f')
+const clipped = ref<string | null>('#00dbcb')
+/** The seam: same surface, someone else's container. */
+const inline = ref<string | null>('#d33e8a')
+const inlineOpen = ref(false)
 </script>
 
 <template>
@@ -50,6 +56,90 @@ const live = ref<string | null>('#8e5dca')
       range="full"
       class="boxed"
     />
+  </section>
+
+  <section class="case">
+    <h2 class="case__title">
+      Floating layer
+    </h2>
+    <p class="case__note">
+      Escape and outside-click dismiss; focus returns to the trigger. Committed:
+      <code>{{ floating ?? 'null' }}</code>
+    </p>
+    <ColorPopover>
+      <template #trigger="{ toggle, triggerAttrs }">
+        <button
+          class="swatch"
+          :style="{ background: floating ?? undefined }"
+          v-bind="triggerAttrs"
+          @click="toggle"
+        />
+      </template>
+      <template #default="{ close }">
+        <ColorSurface
+          v-model="floating"
+          range="full"
+          @close="close"
+        />
+      </template>
+    </ColorPopover>
+  </section>
+
+  <section class="case">
+    <h2 class="case__title">
+      Inside a clipping ancestor
+    </h2>
+    <p class="case__note">
+      The trigger sits in an <code>overflow: hidden</code> box 3rem tall. The panel must
+      escape it, not be sliced off — the classic failure of a hand-rolled layer.
+    </p>
+    <div class="clip">
+      <ColorPopover>
+        <template #trigger="{ toggle, triggerAttrs }">
+          <button
+            class="swatch"
+            :style="{ background: clipped ?? undefined }"
+            v-bind="triggerAttrs"
+            @click="toggle"
+          />
+        </template>
+        <template #default="{ close }">
+          <ColorSurface
+            v-model="clipped"
+            @close="close"
+          />
+        </template>
+      </ColorPopover>
+    </div>
+  </section>
+
+  <section class="case">
+    <h2 class="case__title">
+      Swap-out seam — someone else's container
+    </h2>
+    <p class="case__note">
+      No <code>ColorPopover</code> at all: the surface rendered inside a hand-rolled
+      disclosure. This is the contract a consumer with their own dropdown relies on.
+      Committed: <code>{{ inline ?? 'null' }}</code>
+    </p>
+    <button
+      class="plain"
+      :aria-expanded="inlineOpen"
+      @click="inlineOpen = !inlineOpen"
+    >
+      {{ inlineOpen ? 'Hide' : 'Show' }} surface
+    </button>
+    <div
+      v-if="inlineOpen"
+      class="boxed"
+      style="margin-top: 0.75rem; width: fit-content"
+    >
+      <ColorSurface
+        v-model="inline"
+        range="full"
+        @close="inlineOpen = false"
+      />
+    </div>
   </section>
 
   <section class="case">
@@ -144,6 +234,36 @@ const live = ref<string | null>('#8e5dca')
   --vtcp-surface: light-dark(#fffbeb, #2a1f05);
   --vtcp-text: light-dark(#78350f, #fde68a);
   --vtcp-border: light-dark(#fbbf24, #92400e);
+}
+
+.swatch {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background-image: radial-gradient(circle at 30% 30%, rgb(255 255 255 / 55%), transparent 60%);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+  cursor: pointer;
+}
+
+.plain {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid light-dark(rgb(0 0 0 / 15%), rgb(255 255 255 / 20%));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.clip {
+  overflow: hidden;
+  width: 12rem;
+  height: 3rem;
+  padding: 0.25rem;
+  border: 1px dashed light-dark(rgb(0 0 0 / 25%), rgb(255 255 255 / 25%));
 }
 
 .grid {

@@ -57,6 +57,29 @@
   }
 }
 
+/* ─── Popover ─────────────────────────────────────────────────────────────── */
+
+.vtcp-popover__anchor {
+  display: inline-flex;
+}
+
+/* The UA gives [popover] centred inset and a border; positioning owns those. */
+.vtcp-popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: var(--_radius);
+  background: transparent;
+  box-shadow: var(--_shadow);
+}
+
+.vtcp-popover:not(:popover-open) {
+  display: none;
+}
+
 /* ─── Surface ─────────────────────────────────────────────────────────────── */
 
 .vtcp-surface {

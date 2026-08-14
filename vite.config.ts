@@ -40,6 +40,7 @@ export default defineConfig({
         test: {
           name: 'browser',
           include: ['tests/browser/**/*.test.ts'],
+          setupFiles: ['tests/browser/setup.ts'],
           browser: {
             enabled: true,
             provider: 'playwright',

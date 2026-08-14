@@ -1,5 +1,6 @@
 import './style.css'
 
+export { default as ColorPopover } from './ColorPopover.vue'
 export { default as ColorSurface } from './ColorSurface.vue'
 
 export {
