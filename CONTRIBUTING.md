@@ -63,56 +63,35 @@ The playground is seeded with awkward inputs rather than a happy path: off-ladde
 colours, a CSS-variable default, pickers sharing and not sharing a recents key.
 A demo that only shows one picker on a white background tells you nothing.
 
-## The demo
+## The screenshots
 
-`pnpm demo:record` drives `playground/demo.html` with Playwright and writes
-`docs/demo.gif` and `docs/demo.mp4`.
+`pnpm demo:shoot` drives `playground/demo.html` with Playwright and writes
+`docs/shots/*.png`.
 
-The camera is scripted, not inferred. Auto-zoom recorders have to guess where a
-click landed by watching pixels; here every interaction is ours, so the element
-and the moment are already known.
+Stills, not a recording. A recording of this flow went through several rounds —
+scripted camera moves, cursor following, `zoompan` — and the honest outcome was
+that every version was worse than a handful of well-cropped stills, at ten times
+the file size. If it ever comes back, the reasons it was hard are in the git
+history of `scripts/`.
 
-**Three shots, and nothing between them.** Each centres what is on screen and
-pulls back just enough to hold it: the card, then the card with its tray, then
-both with the surface open. Hovering the swatches, dragging the band, picking a
-shade and reopening the tray at the end all happen with the camera still. An
-earlier version followed the cursor and panned across the tray; it was
-technically fancier and much worse to watch.
+What matters here:
 
-Zoom is derived from how much of the frame the subject should fill, because a
-level that frames the tray crops the surface, which is twice as tall.
+- **`page.screenshot()` honours `deviceScaleFactor`.** CDP's screencast does
+  not — its frames are always CSS pixels regardless of DPR — which is why a
+  recording of this page could never be as sharp as a shot of it.
+- **Clip to the union of what matters**, not to one element. A popover lives in
+  the top layer and overhangs its trigger, so an element-scoped shot cuts it,
+  while a full-viewport shot is mostly empty stage.
+- **Isolating the panel needs `visibility`, not `display`.** The surface's
+  popover is a DOM descendant of the tray, so hiding the tray inherits straight
+  down onto the thing being photographed; `visibility` is the one property a
+  descendant can opt back out of.
+- **Shoot with `reducedMotion: 'reduce'`**, so nothing is caught mid-transition.
 
-Things that cost time to find, in rough order of how much:
-
-- **Frames come from CDP's screencast, not `recordVideo`.** `recordVideo` is a
-  lossy VP8 encode; at 1:1 it looks fine, but the camera crops into it and
-  cropping a soft source only magnifies the softness.
-- **Screencast frames are in CSS pixels.** `deviceScaleFactor` does not change
-  their size and `maxWidth`/`maxHeight` only cap, never upscale. Supersampling
-  means a bigger *viewport*, not a higher DPR — and zoom past the supersample
-  factor is upscaling again, so it is capped there and the demo page is sized so
-  the tightest shot lands on the cap.
-- **`rem` resolves against the root element.** Scaling the demo by setting
-  `font-size` on the stage does nothing — every `rem` in the component stays at
-  the browser default. It has to go on `html`.
-- **Keyframes come in pairs.** The ramp interpolates between consecutive keys,
-  so two keys far apart mean the camera drifts for the whole gap rather than
-  holding. Each shot pins the current framing before moving. Without that the
-  camera never stops, which reads as a wobble — and it multiplies the gif,
-  because gifs store what changed between frames and a moving camera changes
-  all of them. Holding still is why the gif is under a megabyte.
-- **Frame the surface together with the tray.** It flips above the tray when
-  there is no room below, so centring on it alone runs off the viewport edge and
-  the clamp shoves it into a corner.
-
-Two ffmpeg notes: `crop` cannot do this at all, because its width and height are
-evaluated once at filter setup, so its window can move but never resize. And
-`zoompan`'s `x`/`y` are in *input* coordinates with a window `iw/zoom` wide —
-it reads like a position in the scaled image, and multiplying by the zoom
-instead of dividing puts the window nowhere near the subject.
-
-`DEMO_DEBUG=1 pnpm demo:record` prints each shot's box, zoom and centre, which
-is the fastest way to tell a framing bug from a layout one.
+The shots are placed in the readme next to what they illustrate rather than
+collected at the top, which is also why there is no composite strip: three
+states of different shapes forced to a common height makes the wide ones
+enormous.
 
 ## Commits and releases
 

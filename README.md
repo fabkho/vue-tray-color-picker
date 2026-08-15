@@ -8,11 +8,7 @@ An opinionated Vue 3 colour picker. A floating tray puts the common colours one
 tap away; behind the `+` is a full picker — hue, shades, greys and hex — built so
 that every colour a user can reach is one worth shipping.
 
-![The tray, the shade ladder behind the +, and the mixed colour kept as a recent](./docs/demo.gif)
-
-<sub>A gif is the only format a readme plays inline from the repository —
-[`docs/demo.mp4`](./docs/demo.mp4) is the same take at full resolution.
-Regenerate both with `pnpm demo:record`.</sub>
+![The tray open beside a form row, a swatch lifted under the cursor](./docs/shots/03-hover.png)
 
 ## The problem
 
@@ -64,6 +60,8 @@ Surface and theme colours need greys and exact values:
 <ColorPicker v-model="background" range="full" clearable default-color="var(--surface)" />
 ```
 
+![The full picker: hue band, saturation band, five shades and hex entry](./docs/shots/05-surface.png)
+
 ## What it does not do
 
 - **No alpha channel.** Hex in, hex out, fully opaque.
@@ -88,6 +86,15 @@ stays.
 
 Opening the picker never rewrites your value. Save without touching anything and
 you get back exactly what you passed in, byte for byte.
+
+![A muted slate typed into the hex field, with no shade ringed](./docs/shots/07-off-ladder.png)
+
+<sub>`#7A8B99` is not on the ladder, so nothing claims to be it.</sub>
+
+The band's thumb is frosted rather than solid: it samples the band beneath and
+carries a wash of the colour it is sitting on.
+
+![Close on the hue and saturation bands and their frosted thumbs](./docs/shots/06-bands.png)
 
 ## Bringing your own floating layer
 
@@ -163,6 +170,8 @@ class or data-attribute convention to adopt — but you do need to declare
 
 It is deliberately not declared on the component: that would override a host
 forcing one scheme on purpose.
+
+![The picker in dark mode](./docs/shots/09-surface-dark.png)
 
 Motion is suppressed under `prefers-reduced-motion` by the package's own
 stylesheet.
