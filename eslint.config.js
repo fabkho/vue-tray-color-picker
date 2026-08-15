@@ -33,8 +33,9 @@ export default tseslint.config(
     },
   },
   {
-    files: ['tests/**/*.ts'],
+    files: ['tests/**/*.ts', 'scripts/**/*.mjs'],
     rules: {
+      // Scripts are run by hand and report by printing.
       'no-console': 'off',
       // Test hosts are defined inline, next to the behaviour they set up.
       'vue/one-component-per-file': 'off',

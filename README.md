@@ -4,8 +4,11 @@
 [![npm](https://img.shields.io/npm/v/vue-tray-color-picker?colorA=18181b&colorB=4fc08d)](https://www.npmjs.com/package/vue-tray-color-picker)
 [![license](https://img.shields.io/npm/l/vue-tray-color-picker?colorA=18181b&colorB=4fc08d)](./LICENSE)
 
-An opinionated Vue 3 colour picker: a floating swatch tray over a constrained
-hue and shade ladder, so every colour a user can reach is one worth shipping.
+An opinionated Vue 3 colour picker. A floating tray puts the common colours one
+tap away; behind the `+` is a full picker — hue, shades, greys and hex — built so
+that every colour a user can reach is one worth shipping.
+
+![The tray, the shade ladder behind the +, and the mixed colour kept as a recent](./docs/demo.gif)
 
 ## The problem
 

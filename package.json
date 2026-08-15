@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0",
   "packageManager": "pnpm@10.12.1",
-  "description": "An opinionated Vue 3 colour picker: a floating swatch tray over a constrained hue and shade ladder, so every colour a user can reach is one worth shipping.",
+  "description": "An opinionated Vue 3 colour picker: a floating swatch tray, and behind it a constrained hue and shade picker, so every colour a user can reach is one worth shipping.",
   "author": "Fabian Kirchhoff",
   "license": "MIT",
   "homepage": "https://github.com/fabkho/vue-tray-color-picker#readme",
@@ -51,6 +51,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "pnpm --filter playground dev",
+    "demo:record": "node scripts/record-demo.mjs",
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "test:all": "vitest run",
