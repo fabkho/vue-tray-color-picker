@@ -4,15 +4,15 @@ import { ColorSurface } from 'vue-tray-color-picker'
 
 /** Side-by-side candidates. Nothing here ships; it exists to be chosen from. */
 
-/** Each pair is the same idea with and without the white ring. The primed ones
-    build their edge from light instead: an inset rim, a specular arc, a shadow. */
+/** Two shapes, three intensities. Intensity is blur, saturation, fill and rim
+    moving together — see variants.css. */
 const THUMBS = [
-  { key: 'thumb-a', name: 'A — Lens', note: 'Current. White border, clear centre.' },
-  { key: 'thumb-a2', name: 'A′ — Lens, frameless', note: 'No border. Rim is an inset highlight; the edge comes from the shadow under it.' },
-  { key: 'thumb-b', name: 'B — Bead', note: 'Painted to look frosted. Opaque, hides the track.' },
-  { key: 'thumb-b2', name: 'B′ — Bead, frosted', note: 'Actually frosted: backdrop-filter samples the band, so it carries a wash of the colour beneath.' },
-  { key: 'thumb-e', name: 'E — Droplet', note: 'Taller than wide, white border, wet highlight.' },
-  { key: 'thumb-e2', name: 'E′ — Droplet, frosted', note: 'Same shape, no border, blurred backdrop.' },
+  { key: 'glass-bead glass-1', name: 'Bead · subtle', note: '3px blur, 140% saturation. Reads as glass only once you look for it.' },
+  { key: 'glass-bead glass-2', name: 'Bead · medium', note: '7px, 200%. The version you already saw.' },
+  { key: 'glass-bead glass-3', name: 'Bead · heavy', note: '14px, 280%. Milky; the band under it becomes a suggestion.' },
+  { key: 'glass-droplet glass-1', name: 'Droplet · subtle', note: 'Same numbers, taller shape. Points rather than covers.' },
+  { key: 'glass-droplet glass-2', name: 'Droplet · medium', note: '7px, 200%.' },
+  { key: 'glass-droplet glass-3', name: 'Droplet · heavy', note: '14px, 280%. The strongest frost of the six.' },
 ] as const
 
 const BUTTONS = [
@@ -53,7 +53,9 @@ const BUTTONS = [
   },
 ] as const
 
-const thumbValues = ref(Object.fromEntries(THUMBS.map(t => [t.key, '#2b6af8'])))
+const thumbValues = ref<Record<string, string>>(
+  Object.fromEntries(THUMBS.map(thumb => [thumb.key, '#2b6af8'])),
+)
 const buttonValues = ref(Object.fromEntries(BUTTONS.map(b => [b.key, '#1bc98e'])))
 const log = ref<string[]>([])
 
@@ -73,8 +75,9 @@ function note(message: string) {
       Band thumb
     </h2>
     <p class="case__note">
-      Drag each one. Two questions: whether the thumb should reveal the colour under it or
-      sit on top of it, and whether the edge should be a drawn ring or made of light.
+      Both shapes are frosted — <code>backdrop-filter</code> samples the band, so each
+      thumb carries a wash of the colour beneath it. Drag them: the difference between
+      intensities is clearest in motion, as the wash changes hue.
     </p>
     <div class="grid">
       <div
@@ -87,7 +90,7 @@ function note(message: string) {
         <ColorSurface
           v-model="thumbValues[thumb.key]!"
           range="full"
-          :class="['boxed', thumb.key]"
+          :class="['boxed', ...thumb.key.split(' ')]"
         />
       </div>
     </div>
