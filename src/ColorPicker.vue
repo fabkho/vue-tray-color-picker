@@ -20,6 +20,8 @@ const {
   recentKey = 'vtcp:recent',
   recentLimit = 3,
   labels,
+  saveClass = '',
+  cancelClass = '',
 } = defineProps<{
   modelValue: string | null
   /** One-tap swatches; the surface stays available regardless. */
@@ -36,6 +38,17 @@ const {
   recentKey?: string | null
   recentLimit?: number
   labels?: Partial<ColorPickerLabels>
+  /** Dropped onto the surface's default Save button. */
+  saveClass?: string
+  /** Dropped onto the surface's default Cancel button. */
+  cancelClass?: string
+}>()
+
+defineSlots<{
+  /** Replaces the surface's footer entirely. */
+  actions?: (scope: { save: () => void, cancel: () => void, value: string }) => unknown
+  /** The tray's custom-colour affordance. */
+  'custom-icon'?: () => unknown
 }>()
 
 const emit = defineEmits<{
@@ -311,9 +324,21 @@ watch(surfaceOpen, (open) => {
                 :range="range"
                 :commit="commit"
                 :labels="labels"
+                :save-class="saveClass"
+                :cancel-class="cancelClass"
                 @update:model-value="applyCustom"
                 @close="closeSurface"
-              />
+              >
+                <template
+                  v-if="$slots.actions"
+                  #actions="scope"
+                >
+                  <slot
+                    name="actions"
+                    v-bind="scope"
+                  />
+                </template>
+              </ColorSurface>
             </template>
           </ColorPopover>
         </span>

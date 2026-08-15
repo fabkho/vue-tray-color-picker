@@ -307,14 +307,33 @@ describe('ColorPicker — the burst does not spill', () => {
     await openTray({ modelValue: null, clearable: true })
     // The last item starts several centimetres left of the pill; unclipped it
     // is a row of specks sitting outside it.
-    expect(getComputedStyle(tray()).overflow).toBe('hidden')
+    expect(getComputedStyle(tray()).clipPath).toMatch(/inset/)
+  })
+
+  it('clips sideways only, leaving the vertical axis free', async () => {
+    // overflow-x cannot express this: a `visible` axis paired with a clipped one
+    // computes to `auto`, which clips both. The negative top and bottom insets
+    // are what keep the hover lift and the item shadows alive.
+    await openTray({ modelValue: null, clearable: true })
+    const clip = getComputedStyle(tray()).clipPath
+
+    // Browsers re-serialise inset() in its shortest form, so `inset(-2rem 0)`
+    // comes back as two values, not four. Expand it the way the box model does.
+    const parts = clip.replace(/^inset\(|\)$/g, '').split(/\s+/).map(Number.parseFloat)
+    const [top, right = top, bottom = top, left = right] = parts as number[]
+
+    expect(top!).toBeLessThan(0)
+    expect(bottom!).toBeLessThan(0)
+    expect(right!).toBe(0)
+    expect(left!).toBe(0)
+    expect(getComputedStyle(tray()).overflow).not.toBe('hidden')
   })
 
   it('releases the clip once they land, so the hover lift can rise', async () => {
     await openTray({ modelValue: null, clearable: true })
     await burstFinished()
     await settle()
-    expect(getComputedStyle(tray()).overflow).not.toBe('hidden')
+    expect(getComputedStyle(tray()).clipPath).toBe('none')
   })
 
   it('keeps no item outside the pill once settled', async () => {
@@ -334,13 +353,13 @@ describe('ColorPicker — the burst does not spill', () => {
     await openTray({ modelValue: null })
     await burstFinished()
     await settle()
-    expect(getComputedStyle(tray()).overflow).not.toBe('hidden')
+    expect(getComputedStyle(tray()).clipPath).toBe('none')
 
     trigger().click()
     await settle()
     trigger().click()
     await settle()
-    expect(getComputedStyle(tray()).overflow).toBe('hidden')
+    expect(getComputedStyle(tray()).clipPath).toMatch(/inset/)
   })
 })
 

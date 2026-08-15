@@ -147,11 +147,23 @@
   gap: var(--_tray-gap);
 }
 
-/* Held only while the burst runs. The items begin translated well left of the
-   pill, so without this they are a row of specks sitting outside it; but the
-   hover lift rises above the pill, so it cannot stay on afterwards. */
+/**
+ * Held only while the burst runs. The items begin translated well left of the
+ * pill, so without a clip they are a row of specks sitting outside it.
+ *
+ * Only the horizontal axis needs clipping — the spill is sideways, while the
+ * hover lift and the item shadows go up and down. `overflow-x: hidden` cannot
+ * express that: per spec, when one axis is `visible` and the other is not, the
+ * `visible` one computes to `auto`, so the box becomes a scroll container and
+ * clips vertically anyway. `clip-path` has no such coupling — negative top and
+ * bottom insets let the vertical axis overflow freely.
+ *
+ * The cut is a straight vertical line at the pill's widest point rather than
+ * following its curve. For a vertically centred swatch that is the same pixel,
+ * and `inset()` cannot round only two corners.
+ */
 .vtcp-tray--bursting {
-  overflow: hidden;
+  clip-path: inset(-2rem 0 -2rem 0);
 }
 
 /* ─── Burst ───────────────────────────────────────────────────────────────── */

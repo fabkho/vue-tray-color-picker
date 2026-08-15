@@ -19,6 +19,8 @@ const {
   commit = 'confirm',
   disabled = false,
   labels,
+  saveClass = '',
+  cancelClass = '',
 } = defineProps<{
   modelValue: string | null
   /** `full` adds the greyscale rung and hex entry, for surface and theme colours. */
@@ -27,6 +29,17 @@ const {
   commit?: 'confirm' | 'immediate'
   disabled?: boolean
   labels?: Partial<ColorPickerLabels>
+  /** Dropped onto the default Save button — pass your own button class here. */
+  saveClass?: string
+  /** Dropped onto the default Cancel button. */
+  cancelClass?: string
+}>()
+
+defineSlots<{
+  /** Replaces the footer entirely. Bind the handlers to your own controls. */
+  actions?: (scope: { save: () => void, cancel: () => void, value: string }) => unknown
+  /** The panel's close affordance. */
+  'close-icon'?: () => unknown
 }>()
 
 const emit = defineEmits<{
@@ -136,6 +149,10 @@ const hexId = useId()
 
 function save() {
   emit('update:modelValue', draft.value)
+  emit('close')
+}
+
+function cancel() {
   emit('close')
 }
 </script>
@@ -249,22 +266,30 @@ function save() {
       v-if="commit === 'confirm'"
       class="vtcp-surface__footer"
     >
-      <button
-        type="button"
-        class="vtcp-action vtcp-action--secondary"
-        @click="emit('close')"
+      <slot
+        name="actions"
+        :save="save"
+        :cancel="cancel"
+        :value="draft"
       >
-        {{ t.cancel }}
-      </button>
-      <button
-        type="button"
-        class="vtcp-action vtcp-action--primary"
-        :style="{ '--preview': draft }"
-        :disabled="disabled"
-        @click="save"
-      >
-        {{ t.save }}
-      </button>
+        <button
+          type="button"
+          class="vtcp-action vtcp-action--secondary"
+          :class="cancelClass"
+          @click="cancel"
+        >
+          {{ t.cancel }}
+        </button>
+        <button
+          type="button"
+          class="vtcp-action vtcp-action--primary"
+          :class="saveClass"
+          :disabled="disabled"
+          @click="save"
+        >
+          {{ t.save }}
+        </button>
+      </slot>
     </div>
   </div>
 </template>

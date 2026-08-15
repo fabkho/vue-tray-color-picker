@@ -176,8 +176,31 @@ Emits `update:modelValue` with a hex string, or `null` when cleared.
 
 ### `<ColorSurface>`
 
-The panel alone: `modelValue`, `range`, `commit`, `disabled`, `labels`. Emits
-`update:modelValue` and `close`.
+The panel alone: `modelValue`, `range`, `commit`, `disabled`, `labels`,
+`saveClass`, `cancelClass`. Emits `update:modelValue` and `close`.
+
+### Replacing the footer buttons
+
+Two routes, depending on how far you need to go. For a restyle, pass your own
+classes — they land on the default buttons alongside ours:
+
+```vue
+<ColorPicker v-model="color" save-class="a-btn a-btn--primary" cancel-class="a-btn" />
+```
+
+For different markup entirely, take the `#actions` slot. It replaces the footer
+and hands you the handlers:
+
+```vue
+<ColorPicker v-model="color">
+  <template #actions="{ save, cancel, value }">
+    <MyButton @click="cancel">Discard</MyButton>
+    <MyButton primary @click="save">Use {{ value }}</MyButton>
+  </template>
+</ColorPicker>
+```
+
+Both are available on `ColorPicker` and on `ColorSurface`.
 
 ### `<ColorPopover>`
 
