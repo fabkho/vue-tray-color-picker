@@ -40,6 +40,18 @@ const color = ref<string | null>('#1bc98e')
 html {
   font-size: clamp(20px, 2vw, 48px);
 }
+
+/**
+ * `?bare` drops the stage so screenshots can be taken with a transparent
+ * background. The card keeps its own shadow, so the component floats on
+ * whatever it is later placed on instead of arriving with a grey rectangle
+ * around it.
+ */
+html.bare,
+html.bare body,
+html.bare .stage {
+  background: none;
+}
 </style>
 
 <style scoped>

@@ -11,7 +11,7 @@
  * pixels — so these come out at 2x, lossless, and a fraction of the size a gif
  * of the same flow cost.
  */
-import { mkdirSync, rmSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
@@ -38,7 +38,7 @@ async function session(colorScheme) {
     reducedMotion: 'reduce',
   })
   const page = await context.newPage()
-  await page.goto(URL, { waitUntil: 'networkidle' })
+  await page.goto(`${URL}?bare`, { waitUntil: 'networkidle' })
   await pause(500)
   return { context, page }
 }
@@ -63,6 +63,9 @@ async function shoot(page, name, targets, pad = PAD) {
   const box = await boxOf(page, targets)
   await page.screenshot({
     path: join(OUT_DIR, `${name}.png`),
+    /* Transparent, so a shot carries only the component and its shadow — no
+       grey rectangle to sit awkwardly on a readme or inside the hero. */
+    omitBackground: true,
     clip: {
       x: Math.max(0, box.left - pad),
       y: Math.max(0, box.top - pad),
@@ -162,9 +165,77 @@ const written = []
   await context.close()
 }
 
+// ─── Hero ───
+
+/**
+ * Composed in HTML rather than with an image tool, so the presentation has real
+ * shadows, a real gradient and real type — the three states as physical cards
+ * on a soft ground. The stills are inlined as data URLs, so this needs no
+ * server and no temporary files.
+ */
+const inline = name =>
+  `data:image/png;base64,${readFileSync(join(OUT_DIR, `${name}.png`)).toString('base64')}`
+
+const HERO = `<!doctype html>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: 1600px; height: 560px;
+    display: grid; place-items: center;
+    font: 400 15px/1.4 -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    color: #1d1d1f;
+    /* A very light, faintly cool ground with one soft highlight, rather than a
+       flat fill or a saturated gradient. */
+    background:
+      radial-gradient(120% 90% at 50% -20%, #fff 0%, rgb(255 255 255 / 0%) 60%),
+      linear-gradient(168deg, #f5f5f7 0%, #ebecf0 100%);
+  }
+  .stage { display: flex; align-items: flex-end; gap: 68px; padding: 0 88px; }
+  figure { display: grid; gap: 22px; justify-items: center; }
+  img {
+    display: block;
+    /* Layered rather than one blur: a mid lift and a wide ambient fall-off. A
+       single shadow reads as a sticker. Applied as a filter, not box-shadow,
+       because the images are transparent and the shadow has to follow the
+       component's own rounded shape rather than a rectangle around it. */
+    filter:
+      drop-shadow(0 2px 4px rgb(0 0 0 / 6%))
+      drop-shadow(0 14px 30px rgb(0 0 0 / 10%))
+      drop-shadow(0 40px 70px rgb(0 0 0 / 8%));
+  }
+  figcaption { font-size: 15px; letter-spacing: -0.01em; color: #6e6e73; text-align: center; }
+  figcaption b { display: block; font-weight: 590; color: #1d1d1f; letter-spacing: -0.015em; }
+</style>
+<div class="stage">
+  <figure>
+    <img src="${inline('01-closed')}" width="470">
+    <figcaption><b>Resting</b>One swatch in a form row</figcaption>
+  </figure>
+  <figure>
+    <img src="${inline('03-hover')}" width="500">
+    <figcaption><b>The tray</b>Presets, one tap away</figcaption>
+  </figure>
+  <figure>
+    <img src="${inline('05-surface')}" width="315">
+    <figcaption><b>The picker</b>Hue, shades, greys, hex</figcaption>
+  </figure>
+</div>`
+
+{
+  const context = await browser.newContext({
+    viewport: { width: 1600, height: 560 },
+    deviceScaleFactor: DPR,
+    colorScheme: 'light',
+  })
+  const page = await context.newPage()
+  await page.setContent(HERO, { waitUntil: 'load' })
+  await pause(350)
+  await page.screenshot({ path: join('docs', 'hero.png') })
+  await context.close()
+  written.push('hero')
+}
+
 await browser.close()
 
-/* No composite. Three states of different shapes forced to one height make the
-   wide ones enormous, and the readme wants each shot next to the thing it
-   illustrates rather than all of them stacked at the top. */
-console.log(`wrote ${written.length} shots to ${OUT_DIR}`)
+console.log(`wrote ${written.length} images to ${OUT_DIR} and docs/hero.png`)

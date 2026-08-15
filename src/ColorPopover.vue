@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { autoUpdate, computePosition, flip, offset, shift, type Placement } from '@floating-ui/dom'
-import { nextTick, onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
 
 /**
  * The default floating layer, and the designated swap-out point: a consumer with
@@ -88,7 +88,7 @@ function close() {
   open.value = false
 }
 
-watch(open, async (isOpen) => {
+async function syncPopoverState(isOpen: boolean) {
   const panel = panelEl.value
   if (!panel) return
 
@@ -108,6 +108,16 @@ watch(open, async (isOpen) => {
   // The anchor is a wrapper, not the control — return focus to whatever the
   // consumer put inside it.
   if (triggerEl.value) focusables(triggerEl.value)[0]?.focus()
+}
+
+watch(open, syncPopoverState)
+
+/* A watcher only fires on change, so a popover mounted with `open` already true
+   would never be promoted to the top layer — it would sit in the page, unshown
+   and unpositioned. Consumers who restore an open panel from their own state do
+   exactly that. */
+onMounted(() => {
+  if (open.value) syncPopoverState(true)
 })
 
 /**

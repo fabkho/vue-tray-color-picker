@@ -96,7 +96,13 @@
   display: inline-flex;
 }
 
-/* The UA gives [popover] centred inset and a border; positioning owns those. */
+/**
+ * A positioning wrapper and nothing else. The UA gives `[popover]` a centred
+ * inset and a border, which have to go; so does any chrome of our own. Giving
+ * this element a radius and a shadow paints a rounded *rectangle* behind
+ * whatever it holds — visible as a pair of ghost edges above and below the
+ * tray, which is a pill. The content carries its own.
+ */
 .vtcp-popover {
   position: fixed;
   inset: auto;
@@ -104,9 +110,7 @@
   padding: 0;
   overflow: visible;
   border: 0;
-  border-radius: var(--_radius);
   background: transparent;
-  box-shadow: var(--_shadow);
 }
 
 .vtcp-popover:not(:popover-open) {
@@ -286,6 +290,9 @@
   padding: 0 1rem 1rem;
   border-radius: var(--_radius);
   background: var(--_surface);
+  /* Its own, now that the popover wrapper carries none. Inline uses of the
+     surface get it too, which they previously had to add themselves. */
+  box-shadow: var(--_shadow);
 }
 
 .vtcp-surface__header {

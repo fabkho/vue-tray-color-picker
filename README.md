@@ -8,7 +8,7 @@ An opinionated Vue 3 colour picker. A floating tray puts the common colours one
 tap away; behind the `+` is a full picker — hue, shades, greys and hex — built so
 that every colour a user can reach is one worth shipping.
 
-![The tray open beside a form row, a swatch lifted under the cursor](./docs/shots/03-hover.png)
+![Three states side by side: a resting swatch in a form row, the tray open with a swatch lifted, and the full picker](./docs/hero.png)
 
 ## The problem
 

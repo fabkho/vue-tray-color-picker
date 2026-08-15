@@ -1,7 +1,7 @@
 import { userEvent } from 'vitest/browser'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import ColorPopover from '../../src/ColorPopover.vue'
 
 let wrapper: VueWrapper | null = null
@@ -11,11 +11,17 @@ const Host = defineComponent({
   props: {
     placement: { type: String, default: 'bottom-start' },
     disabled: { type: Boolean, default: false },
+    open: { type: Boolean, default: false },
   },
   setup(props) {
+    /* Local state seeded from the prop: the popover has to be able to change it
+       when toggled, so it cannot be driven by the prop alone. */
+    const open = ref(props.open)
     return () => h(ColorPopover as never, {
-      placement: props.placement,
-      disabled: props.disabled,
+      'placement': props.placement,
+      'disabled': props.disabled,
+      'open': open.value,
+      'onUpdate:open': (value: boolean) => { open.value = value },
     }, {
       trigger: ({ toggle, triggerAttrs }: {
         toggle: () => void
@@ -106,6 +112,25 @@ describe('ColorPopover — open and close', () => {
     trigger().click()
     await settle()
     expect(isOpen()).toBe(false)
+  })
+})
+
+describe('ColorPopover — mounted already open', () => {
+  it('promotes a popover whose open state is true from the start', async () => {
+    // A watcher only fires on change. Without a mount-time sync the panel sits
+    // in the page unshown, which is what a consumer restoring their own state
+    // would hit.
+    wrapper = mount(Host, { props: { open: true }, attachTo: document.body })
+    await settle()
+    expect(isOpen()).toBe(true)
+  })
+
+  it('positions it too, rather than leaving it at the viewport origin', async () => {
+    wrapper = mount(Host, { props: { open: true }, attachTo: document.body })
+    await settle()
+    const panelBox = panel().getBoundingClientRect()
+    const triggerBox = trigger().getBoundingClientRect()
+    expect(panelBox.top).toBeGreaterThanOrEqual(triggerBox.bottom)
   })
 })
 

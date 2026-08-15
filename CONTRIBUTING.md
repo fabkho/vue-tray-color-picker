@@ -87,6 +87,14 @@ What matters here:
   down onto the thing being photographed; `visibility` is the one property a
   descendant can opt back out of.
 - **Shoot with `reducedMotion: 'reduce'`**, so nothing is caught mid-transition.
+- **`?bare` plus `omitBackground` gives a transparent shot.** The component
+  keeps its own shadow and floats on whatever it is placed on, rather than
+  arriving with a grey rectangle that reads as a card inside a card.
+- **The hero is composed in HTML, not with an image tool**, so it gets real
+  shadows, a real gradient and real type. The stills go in as data URLs, so it
+  needs no server and no temporary files. Its shadow is a `filter:
+  drop-shadow`, not `box-shadow` — the images are transparent, so the shadow
+  has to follow the component's rounded shape rather than a box around it.
 
 The shots are placed in the readme next to what they illustrate rather than
 collected at the top, which is also why there is no composite strip: three
