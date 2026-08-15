@@ -70,21 +70,38 @@ A demo that only shows one picker on a white background tells you nothing.
 
 The camera move is scripted, not inferred. Auto-zoom recorders have to guess
 where a click landed by watching pixels; here every interaction is ours, so the
-element and the moment are already known and the timeline is built from them —
-`look(target, zoom)` pushes a keyframe, and the keyframes become an ffmpeg
-`zoompan` expression.
+element and the moment are already known. `look(target, fill)` pushes keyframes,
+and the keyframes become an ffmpeg `zoompan` expression.
 
-Three things that cost time to find:
+Six things that cost time to find:
 
-- **`zoompan`, not `crop`.** `crop` evaluates its width and height once at
-  filter setup, so its window can move but never resize.
-- **`zoompan`'s `x`/`y` are in input coordinates**, with a window `iw/zoom`
-  wide. It reads like a position in the scaled image; multiply by the zoom
-  instead of dividing and the clamp pins everything to an edge.
-- **A moving camera is expensive in a gif.** Gifs compress by storing what
-  changed between frames, and a camera move changes every pixel of every frame.
-  The same clip costs several times what it would with the camera locked, which
-  is why the gif is smaller and coarser than the mp4.
+- **Frames come from CDP's screencast, not `recordVideo`.** `recordVideo` is a
+  lossy VP8 encode; played at 1:1 it looks fine, but the camera crops into it
+  and cropping a soft source only magnifies the softness.
+- **Screencast frames are in CSS pixels.** `deviceScaleFactor` does not change
+  their size and `maxWidth`/`maxHeight` only cap, never upscale. Supersampling
+  means a bigger *viewport*, not a higher DPR.
+- **`rem` resolves against the root element.** Scaling the demo by setting
+  `font-size` on the stage does nothing at all — every `rem` in the component
+  stays at the browser default. It has to go on `html`.
+- **Keyframes come in pairs.** The ramp interpolates between consecutive keys,
+  so two keys far apart mean the camera drifts for the entire gap. Each move
+  pins the current framing first, then eases to the new one over ~0.8s. Without
+  that the camera never stops, which reads as a permanent wobble — and it
+  quadrupled the gif, because gifs store what changed between frames and a
+  moving camera changes all of them.
+- **Zoom is derived from the subject**, as a fraction of the frame it should
+  fill. A level that frames the tray nicely crops the surface, which is half as
+  wide and twice as tall.
+- **Read a popover's box after it has been positioned.** Placement is computed
+  asynchronously; measure too early and the shot centres on wherever the panel
+  started.
+
+Two ffmpeg notes: `crop` cannot do this at all, because its width and height are
+evaluated once at filter setup, so its window can move but never resize. And
+`zoompan`'s `x`/`y` are in *input* coordinates with a window `iw/zoom` wide —
+it reads like a position in the scaled image, and multiplying by the zoom
+instead of dividing puts the window nowhere near the subject.
 
 Frame the union of what matters rather than a single element: once the tray is
 open the subject is a group, and centring on one member pushes the rest out of

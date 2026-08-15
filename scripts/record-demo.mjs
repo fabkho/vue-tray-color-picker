@@ -2,20 +2,20 @@
  * Records the readme demo from playground/demo.html.
  *
  *   pnpm dev                          # in one shell
- *   node scripts/record-demo.mjs      # in another
+ *   pnpm demo:record                  # in another
  *
  * Produces docs/demo.gif and docs/demo.mp4.
  *
- * The camera move is scripted rather than inferred. Auto-zoom tools have to
- * guess where a click landed by watching pixels; here every interaction is
- * driven by us, so the exact element and moment are already known and the
- * timeline is built from them directly.
+ * Frames come from CDP's screencast, not Playwright's recordVideo. recordVideo
+ * is a lossy VP8 encode at a modest bitrate — fine played back at 1:1, but the
+ * camera crops into it, and cropping into a soft source only magnifies the
+ * softness. The screencast hands over lossless PNGs at the device pixel ratio.
  *
- * Everything is driven through real mouse input so the hover lifts and the
- * popover's own dismissal behave as they would for a user.
+ * The camera move is scripted rather than inferred: every interaction is ours,
+ * so the element and the moment are already known.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
@@ -23,12 +23,19 @@ const URL = process.env.DEMO_URL ?? 'http://localhost:5173/demo.html'
 const OUT_DIR = 'docs'
 const RAW_DIR = '.demo-raw'
 
-/* Recorded larger than it is shown: zooming in then samples close to 1:1
-   instead of magnifying blur. */
-const WIDTH = 1920
-const HEIGHT = 1080
+/**
+ * The screencast delivers frames in *CSS* pixels: deviceScaleFactor does not
+ * affect their size, and maxWidth/maxHeight only cap, never upscale. So the way
+ * to hand the camera more pixels is a bigger viewport, not a higher DPR — hence
+ * a 2x viewport with the demo page's root font size doubled to match, which is
+ * a true supersample rather than an upscale.
+ */
+const OUT = { width: 1180, height: 664 }
+const SUPERSAMPLE = 2
+const VIEWPORT = { width: OUT.width * SUPERSAMPLE, height: OUT.height * SUPERSAMPLE }
+
 const FPS = 30
-const GIF_WIDTH = 640
+const GIF_WIDTH = 620
 const GIF_FPS = 15
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -39,152 +46,183 @@ mkdirSync(OUT_DIR, { recursive: true })
 
 const browser = await chromium.launch()
 const context = await browser.newContext({
-  viewport: { width: WIDTH, height: HEIGHT },
-  recordVideo: { dir: RAW_DIR, size: { width: WIDTH, height: HEIGHT } },
+  viewport: VIEWPORT,
   colorScheme: 'light',
   reducedMotion: 'no-preference',
 })
-
 const page = await context.newPage()
-/* Recording starts with the page, so the clock has to start here too. */
-const started = Date.now()
-const at = () => (Date.now() - started) / 1000
+await page.goto(URL, { waitUntil: 'networkidle' })
+await pause(400)
+
+// ─── Capture ───
+
+const frames = []
+const client = await context.newCDPSession(page)
+
+client.on('Page.screencastFrame', async ({ data, sessionId, metadata }) => {
+  frames.push({ data, t: metadata.timestamp })
+  try {
+    await client.send('Page.screencastFrameAck', { sessionId })
+  }
+  catch { /* session already gone; the run is over. */ }
+})
+
+await client.send('Page.startScreencast', {
+  format: 'png',
+  everyNthFrame: 1,
+  maxWidth: VIEWPORT.width,
+  maxHeight: VIEWPORT.height,
+})
+
+/* The capture clock is the first frame's timestamp, so the camera timeline has
+   to be measured from the same moment rather than from wall-clock zero. */
+let firstFrameAt = null
+while (firstFrameAt === null) {
+  await pause(20)
+  if (frames.length > 0) firstFrameAt = frames[0].t
+}
+const at = () => (frames.length > 0 ? frames[frames.length - 1].t : firstFrameAt) - firstFrameAt
 
 // ─── Camera ───
 
-/** Keyframes of `{ t, z, cx, cy }` — zoom, and the point held in the centre. */
-const camera = [{ t: 0, z: 1, cx: WIDTH / 2, cy: HEIGHT / 2 }]
+/**
+ * Keyframes of `{ t, z, cx, cy }` in CSS pixels. Deliberately few. A camera
+ * that is always moving reads as restless, and a permanent slow drift also
+ * keeps zoompan's integer rounding visible as shimmer — it moves when the
+ * subject genuinely changes and holds still the rest of the time.
+ */
+const camera = []
 
 /**
- * Aim at an element. Keyframes are pushed at the moment they are requested and
- * interpolated afterwards, so a move started before an interaction is already
- * settling as it happens.
+ * `fill` is the fraction of the frame the subject should occupy on whichever
+ * axis constrains it. Derived rather than hard-coded, because a zoom that
+ * framed the tray nicely will crop the surface — it is half as wide and twice
+ * as tall — and the numbers would need retuning every time the demo page moved.
  */
-async function look(target, z = 1) {
+async function look(target, fill, move = 0.8) {
   const locators = Array.isArray(target) ? target : [target]
   const boxes = (await Promise.all(locators.map(one => one.boundingBox()))).filter(Boolean)
   if (boxes.length === 0) return
 
-  /* Framed on the union rather than a single element: once the tray is open the
-     interesting thing is a group, and centring on one member pushes the rest
-     out of shot. */
+  /* Framed on the union: once the tray is open the subject is a group, and
+     centring on one member pushes the rest out of shot. */
   const left = Math.min(...boxes.map(box => box.x))
   const right = Math.max(...boxes.map(box => box.x + box.width))
   const top = Math.min(...boxes.map(box => box.y))
   const bottom = Math.max(...boxes.map(box => box.y + box.height))
 
-  camera.push({ t: at(), z, cx: (left + right) / 2, cy: (top + bottom) / 2 })
-}
+  const width = right - left
+  const height = bottom - top
+  const z = Math.min(VIEWPORT.width * fill / width, VIEWPORT.height * fill / height)
 
-await page.goto(URL, { waitUntil: 'networkidle' })
-await pause(700)
+  const now = at()
+  /* Pin the current framing at the moment the move is asked for, so the
+     interpolation covers `move` seconds and not the whole gap since the last
+     keyframe. Without this pair the camera drifts continuously between shots,
+     which reads as a permanent slow wobble rather than as camera work. */
+  const previous = camera[camera.length - 1]
+  if (previous) camera.push({ ...previous, t: now })
+
+  camera.push({ t: now + move, z, cx: (left + right) / 2, cy: (top + bottom) / 2 })
+}
 
 const card = page.locator('.card')
 const trigger = page.locator('.vtcp-trigger')
 const swatches = page.locator('.vtcp-tray__group [role="radio"]')
 
-await look(card, 2.05)
-await pause(500)
+// ─── 1. The tray. Framed once, then held ───
 
-// Lead the camera onto the trigger, then open.
-await look(trigger, 3)
-await pause(550)
+await look(card, 0.5)
+await pause(700)
+
 await trigger.click()
-await pause(150)
-
-// Widen to hold the whole tray as it bursts in.
-const tray = page.locator('.vtcp-tray')
-await look([card, tray], 1.95)
-await pause(750)
+await pause(900)
 
 for (const index of [0, 2, 4]) {
   await swatches.nth(index).hover()
-  await pause(430)
+  await pause(420)
 }
-
 await swatches.nth(3).click()
-await look(card, 2.2)
-await pause(850)
+await pause(900)
 
-// Back in, and on to the full surface.
-await look(trigger, 2.7)
-await pause(400)
+// ─── 2. One move into the surface, then hold through all of it ───
+
 await trigger.click()
-await pause(500)
+await pause(550)
 const custom = page.locator('.vtcp-swatch--custom')
-await look([card, tray], 1.95)
 await custom.hover()
-await pause(400)
+await pause(350)
 await custom.click()
-await pause(250)
+/* Long enough for the popover to have been positioned: its placement is
+   computed asynchronously, and framing on a box read before that lands the shot
+   wherever the panel happened to start. */
+await pause(600)
 
 const surface = page.locator('.vtcp-surface')
-await look([tray, surface], 1.75)
-await pause(700)
-
-// Close in on the bands: the frosted thumb is the detail worth seeing.
-const bands = page.locator('.vtcp-surface__bands')
-await look(bands, 3.4)
-await pause(400)
+await look(surface, 0.78)
+await pause(800)
 
 const hue = page.locator('.vtcp-band--hue')
 const box = await hue.boundingBox()
 await page.mouse.move(box.x + box.width * 0.62, box.y + box.height / 2)
 await page.mouse.down()
 for (let step = 0; step <= 26; step++) {
-  const t = 0.62 + (0.42 - 0.62) * (step / 26)
-  await page.mouse.move(box.x + box.width * t, box.y + box.height / 2)
+  const fraction = 0.62 + (0.42 - 0.62) * (step / 26)
+  await page.mouse.move(box.x + box.width * fraction, box.y + box.height / 2)
   await pause(26)
 }
 await page.mouse.up()
-await pause(450)
+await pause(500)
 
-// Pull out to the ladder, take a rung, keep it.
 const shades = page.locator('.vtcp-shade')
-await look([surface], 2.6)
-await pause(350)
 for (const index of [4, 2]) {
   await shades.nth(index).hover()
   await pause(380)
 }
 await shades.nth(2).click()
-await pause(500)
-await look(surface, 2.2)
-await pause(300)
+await pause(550)
 await page.locator('.vtcp-action--primary').click()
-// Reframe immediately: the surface is gone, and holding on where it was
-// leaves a second of empty stage.
-await look(card, 2.2)
+
+// ─── 3. Back out for the payoff ───
+
+await look(card, 0.5)
 await pause(900)
 
-// Reopen: the mixed colour is now one tap away.
-await look(card, 2.2)
 await trigger.click()
+await pause(1600)
+
+await client.send('Page.stopScreencast')
 await pause(200)
-await look([card, tray], 1.95)
-await pause(1300)
-
-await look(card, 2.05)
-await pause(600)
-
 await context.close()
 await browser.close()
 
-// ─── Encode ───
+if (frames.length === 0) throw new Error('screencast produced no frames')
 
-const video = readdirSync(RAW_DIR).find(file => file.endsWith('.webm'))
-if (!video) throw new Error('playwright produced no video')
-const src = join(RAW_DIR, video)
+// ─── Assemble ───
+
+/* The screencast only emits on change, so a held shot produces almost nothing.
+   The concat demuxer takes each frame with the duration it was actually on
+   screen, reconstructing the timing exactly without writing duplicates. */
+const list = []
+frames.forEach((frame, index) => {
+  const name = `f${String(index).padStart(5, '0')}.png`
+  writeFileSync(join(RAW_DIR, name), Buffer.from(frame.data, 'base64'))
+  const next = frames[index + 1]
+  const seconds = next ? next.t - frame.t : 1 / FPS
+  list.push(`file '${name}'`, `duration ${Math.max(1 / 120, seconds).toFixed(4)}`)
+})
+list.push(`file 'f${String(frames.length - 1).padStart(5, '0')}.png'`)
+writeFileSync(join(RAW_DIR, 'frames.txt'), `${list.join('\n')}\n`)
+
+// ─── Camera expression ───
 
 /**
- * Build a per-frame ffmpeg expression from the keyframes.
- *
  * `crop` cannot do this: its width and height are evaluated once at filter
- * setup, so the window can move but never resize. `zoompan` re-evaluates
- * everything per frame, which is the whole reason it exists.
+ * setup, so the window can move but never resize. `zoompan` re-evaluates per
+ * frame, which is the whole reason it exists.
  *
- * Timeline is in output frames rather than seconds, because `on` is the one
- * clock zoompan exposes consistently across builds.
+ * The timeline is in output frames, because `on` is the one clock zoompan
+ * exposes consistently across builds.
  */
 function ramp(pick) {
   const frame = key => Math.round(key.t * FPS)
@@ -201,46 +239,44 @@ function ramp(pick) {
   return out
 }
 
+/* Camera coordinates and frames are both in CSS pixels — no conversion. */
 const zoom = ramp(key => key.z.toFixed(4))
 const centreX = ramp(key => key.cx.toFixed(2))
 const centreY = ramp(key => key.cy.toFixed(2))
 
 /* zoompan's x/y are the top-left of the window in *input* coordinates, and the
-   window is iw/zoom wide — not, as it first looks, a position in the scaled
+   window is iw/zoom wide — not, as it first reads, a position in the scaled
    image. Multiplying by zoom instead of dividing pushes the window off the
-   subject and the clamp then pins it to an edge. */
+   subject, and the clamp then pins it to an edge. */
 const zoompan = [
   `zoompan=z='${zoom}'`,
   `x='clip((${centreX})-iw/zoom/2,0,iw-iw/zoom)'`,
   `y='clip((${centreY})-ih/zoom/2,0,ih-ih/zoom)'`,
-  `d=1:s=${WIDTH}x${HEIGHT}:fps=${FPS}`,
+  `d=1:s=${VIEWPORT.width}x${VIEWPORT.height}:fps=${FPS}`,
 ].join(':')
+
+/* Cropped at full capture size and only then scaled down. zoompan rounds its
+   window origin to whole pixels, and at 2x that rounding is half an output
+   pixel — the difference between a steady frame and a visible shimmer. */
+const chain = `${zoompan},scale=${OUT.width}:${OUT.height}:flags=lanczos`
 
 const mp4 = join(OUT_DIR, 'demo.mp4')
 execFileSync('ffmpeg', [
-  '-y', '-i', src,
-  '-vf', zoompan,
-  '-c:v', 'libx264', '-crf', '18', '-preset', 'slow',
+  '-y', '-f', 'concat', '-safe', '0', '-i', join(RAW_DIR, 'frames.txt'),
+  '-vf', chain, '-r', String(FPS),
+  '-c:v', 'libx264', '-crf', '17', '-preset', 'slow',
   '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
   mp4,
 ], { stdio: ['ignore', 'ignore', 'inherit'] })
 
-/**
- * Two passes for the gif: a palette from the whole clip, then the encode. One
- * pass picks a palette per frame and the swatches shimmer.
- *
- * The camera move is expensive here. A gif compresses by storing only what
- * changed between frames, and a moving camera changes every pixel of every
- * frame — so the same clip costs several times what it would with the camera
- * locked. Hence the smaller width, lower frame rate and halved palette: the mp4
- * is the high-fidelity copy, and the gif only has to survive a readme.
- */
+/* Two passes for the gif: a palette from the whole clip, then the encode. One
+   pass picks a palette per frame and the swatches shimmer. */
 const palette = join(RAW_DIR, 'palette.png')
 const gifFilters = `fps=${GIF_FPS},scale=${GIF_WIDTH}:-1:flags=lanczos`
 
 execFileSync('ffmpeg', [
   '-y', '-i', mp4,
-  '-vf', `${gifFilters},palettegen=max_colors=128:stats_mode=diff`,
+  '-vf', `${gifFilters},palettegen=max_colors=160:stats_mode=diff`,
   palette,
 ], { stdio: ['ignore', 'ignore', 'inherit'] })
 
@@ -251,4 +287,5 @@ execFileSync('ffmpeg', [
 ], { stdio: ['ignore', 'ignore', 'inherit'] })
 
 rmSync(RAW_DIR, { recursive: true, force: true })
-console.log(`\nwrote ${mp4} and ${join(OUT_DIR, 'demo.gif')} (${camera.length} camera keys)`)
+console.log(`\nwrote ${mp4} and ${join(OUT_DIR, 'demo.gif')}`)
+console.log(`${frames.length} captured frames, ${camera.length} camera keys`)

@@ -27,15 +27,30 @@ const color = ref<string | null>('#1bc98e')
   </main>
 </template>
 
+<style>
+/**
+ * On the root element, not the stage: `rem` resolves against the root, so
+ * scaling anything else leaves every rem in the component at the browser
+ * default and the demo never actually grows.
+ *
+ * Sized against the viewport so the recording can be supersampled — at twice
+ * the viewport this draws at twice the size, which is real detail to crop into
+ * rather than an upscale.
+ */
+html {
+  font-size: clamp(20px, 1.75vw, 42px);
+}
+</style>
+
 <style scoped>
 .stage {
+  /* Fixed rather than flowed: body padding would otherwise make the page taller
+     than the viewport, and the shot would sit off-centre. */
+  position: fixed;
+  inset: 0;
   display: grid;
-  min-height: 100vh;
   place-items: center;
   background: light-dark(#f4f4f6, #131316);
-  /* Rendered large so the recording can crop in without upscaling much. The
-     component is sized in rem throughout, so this scales it crisply. */
-  font-size: 20px;
 }
 
 .card {
