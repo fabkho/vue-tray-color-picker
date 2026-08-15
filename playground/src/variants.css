@@ -1,17 +1,50 @@
 /**
- * Candidate styles, kept out of a scoped block on purpose: a slider thumb is a
- * UA pseudo-element and cannot be reached through Vue's scoping attribute.
+ * Candidate thumb styles, kept out of a scoped block on purpose: a slider thumb
+ * is a UA pseudo-element and cannot be reached through Vue's scoping attribute.
  *
- * Each thumb rule has to be written twice — WebKit and Gecko reject the whole
- * declaration if the other engine's selector is in the same rule.
+ * Every rule is written twice. WebKit and Gecko each drop the entire
+ * declaration if the other engine's selector shares the rule, so they cannot be
+ * grouped.
+ *
+ * The primed variants drop the opaque white ring. Without a border to lean on,
+ * the edge has to come from light: an inset rim highlight, a specular arc up and
+ * left, and a shadow underneath doing the work of separating the thumb from the
+ * band.
  */
 
-/* ─── Magnifier variants ──────────────────────────────────────────────────── */
+/* ─── A — Lens ────────────────────────────────────────────────────────────── */
+/* Baseline: 1.5px white border, clear centre. Defined in the package. */
 
-/* A — Lens (current). Clear centre, bright rim, specular highlight. */
-.thumb-a .vtcp-band::-webkit-slider-thumb { }
+/* ─── A′ — Lens, frameless ────────────────────────────────────────────────── */
 
-/* B — Bead. Opaque frosted glass; hides the track but reads as a solid object. */
+.thumb-a2 .vtcp-band::-webkit-slider-thumb {
+  border: 0;
+  background:
+    radial-gradient(circle at 34% 24%, rgb(255 255 255 / 72%), rgb(255 255 255 / 6%) 46%, transparent 64%),
+    radial-gradient(circle at 50% 116%, rgb(255 255 255 / 24%), transparent 50%);
+  box-shadow:
+    inset 0 0 0 1.5px rgb(255 255 255 / 62%),
+    inset 0 1px 1px rgb(255 255 255 / 85%),
+    inset 0 -3px 6px rgb(0 0 0 / 18%),
+    0 1px 2px rgb(0 0 0 / 30%),
+    0 5px 12px rgb(0 0 0 / 18%);
+}
+
+.thumb-a2 .vtcp-band::-moz-range-thumb {
+  border: 0;
+  background:
+    radial-gradient(circle at 34% 24%, rgb(255 255 255 / 72%), rgb(255 255 255 / 6%) 46%, transparent 64%),
+    radial-gradient(circle at 50% 116%, rgb(255 255 255 / 24%), transparent 50%);
+  box-shadow:
+    inset 0 0 0 1.5px rgb(255 255 255 / 62%),
+    inset 0 1px 1px rgb(255 255 255 / 85%),
+    inset 0 -3px 6px rgb(0 0 0 / 18%),
+    0 1px 2px rgb(0 0 0 / 30%),
+    0 5px 12px rgb(0 0 0 / 18%);
+}
+
+/* ─── B — Bead ────────────────────────────────────────────────────────────── */
+
 .thumb-b .vtcp-band::-webkit-slider-thumb {
   background:
     linear-gradient(160deg, rgb(255 255 255 / 95%), rgb(255 255 255 / 62%)),
@@ -36,53 +69,44 @@
     inset 0 -3px 6px rgb(0 0 0 / 10%);
 }
 
-/* C — Halo. Almost nothing: a hairline ring and a soft outer glow. */
-.thumb-c .vtcp-band::-webkit-slider-thumb {
-  width: 1.125rem;
-  height: 1.125rem;
-  background: transparent;
-  border: 2px solid #fff;
+/* ─── B′ — Bead, frosted ──────────────────────────────────────────────────── */
+/* Actually frosted rather than painted to look frosted: the blur samples the
+   band underneath, so the bead carries a soft wash of the colour it sits on. */
+
+.thumb-b2 .vtcp-band::-webkit-slider-thumb {
+  border: 0;
+  background: rgb(255 255 255 / 22%);
+  backdrop-filter: blur(6px) saturate(200%) brightness(115%);
   box-shadow:
-    0 0 0 1px rgb(0 0 0 / 12%),
-    0 2px 8px rgb(0 0 0 / 22%);
+    inset 0 0 0 1px rgb(255 255 255 / 40%),
+    inset 0 2px 2px rgb(255 255 255 / 55%),
+    inset 0 -4px 8px rgb(0 0 0 / 14%),
+    0 2px 5px rgb(0 0 0 / 22%),
+    0 8px 18px rgb(0 0 0 / 14%);
 }
 
-.thumb-c .vtcp-band::-moz-range-thumb {
-  width: 1.125rem;
-  height: 1.125rem;
-  background: transparent;
-  border: 2px solid #fff;
+.thumb-b2 .vtcp-band::-moz-range-thumb {
+  border: 0;
+  background: rgb(255 255 255 / 22%);
+  backdrop-filter: blur(6px) saturate(200%) brightness(115%);
   box-shadow:
-    0 0 0 1px rgb(0 0 0 / 12%),
-    0 2px 8px rgb(0 0 0 / 22%);
+    inset 0 0 0 1px rgb(255 255 255 / 40%),
+    inset 0 2px 2px rgb(255 255 255 / 55%),
+    inset 0 -4px 8px rgb(0 0 0 / 14%),
+    0 2px 5px rgb(0 0 0 / 22%),
+    0 8px 18px rgb(0 0 0 / 14%);
 }
 
-/* D — Loupe. Big, thick bezel, genuinely reads as an instrument. */
-.thumb-d .vtcp-band::-webkit-slider-thumb {
-  width: 1.75rem;
-  height: 1.75rem;
-  background:
-    radial-gradient(circle at 36% 24%, rgb(255 255 255 / 70%), transparent 46%);
-  border: 3px solid rgb(255 255 255 / 96%);
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 14%),
-    0 3px 10px rgb(0 0 0 / 30%),
-    inset 0 0 8px rgb(0 0 0 / 22%);
+/* A droplet is taller than the default 0.75rem track, and where it overhangs
+   you see the page through its translucent body — it reads as a white blob
+   hanging off the bottom. The shape needs a chunkier band under it. */
+.thumb-e .vtcp-band,
+.thumb-e2 .vtcp-band {
+  height: 1.25rem;
 }
 
-.thumb-d .vtcp-band::-moz-range-thumb {
-  width: 1.75rem;
-  height: 1.75rem;
-  background:
-    radial-gradient(circle at 36% 24%, rgb(255 255 255 / 70%), transparent 46%);
-  border: 3px solid rgb(255 255 255 / 96%);
-  box-shadow:
-    0 0 0 1px rgb(0 0 0 / 14%),
-    0 3px 10px rgb(0 0 0 / 30%),
-    inset 0 0 8px rgb(0 0 0 / 22%);
-}
+/* ─── E — Droplet ─────────────────────────────────────────────────────────── */
 
-/* E — Droplet. Squat, wider than tall, with a wet highlight. */
 .thumb-e .vtcp-band::-webkit-slider-thumb {
   width: 1rem;
   height: 1.625rem;
@@ -109,26 +133,39 @@
     0 5px 12px rgb(0 0 0 / 14%);
 }
 
-/* ─── Button variants ─────────────────────────────────────────────────────── */
+/* ─── E′ — Droplet, frameless ─────────────────────────────────────────────── */
 
-/* Passed in through saveClass / cancelClass — no slot needed for a restyle. */
-.btn-anny {
-  padding: 0.5rem 1rem;
+.thumb-e2 .vtcp-band::-webkit-slider-thumb {
+  width: 1.0625rem;
+  height: 1.75rem;
+  border-radius: 0.6rem;
   border: 0;
-  border-radius: 999px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  background: rgb(255 255 255 / 16%);
+  backdrop-filter: blur(4px) saturate(170%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 45%),
+    inset 0 2px 3px rgb(255 255 255 / 70%),
+    inset 0 -5px 9px rgb(0 0 0 / 16%),
+    0 2px 4px rgb(0 0 0 / 26%),
+    0 7px 16px rgb(0 0 0 / 14%);
 }
 
-.btn-anny--secondary {
-  background: light-dark(#f1f2f4, #2a2a2e);
-  color: inherit;
+.thumb-e2 .vtcp-band::-moz-range-thumb {
+  width: 1.0625rem;
+  height: 1.75rem;
+  border-radius: 0.6rem;
+  border: 0;
+  background: rgb(255 255 255 / 16%);
+  backdrop-filter: blur(4px) saturate(170%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 45%),
+    inset 0 2px 3px rgb(255 255 255 / 70%),
+    inset 0 -5px 9px rgb(0 0 0 / 16%),
+    0 2px 4px rgb(0 0 0 / 26%),
+    0 7px 16px rgb(0 0 0 / 14%);
 }
 
-.btn-anny--primary {
-  background: light-dark(#18181b, #e4e4e7);
-  color: light-dark(#fff, #18181b);
-}
+/* ─── Button variants ─────────────────────────────────────────────────────── */
 
 .btn-square {
   border-radius: 0.375rem;
@@ -139,7 +176,6 @@
 }
 
 .btn-ghost {
-  border: 0;
   background: transparent;
   color: light-dark(#52525b, #a1a1aa);
   text-decoration: underline;
@@ -147,9 +183,7 @@
 }
 
 .btn-ghost--strong {
-  border: 0;
   background: transparent;
   color: light-dark(#2b6af8, #7aa2f7);
   font-weight: 600;
-  text-decoration: none;
 }

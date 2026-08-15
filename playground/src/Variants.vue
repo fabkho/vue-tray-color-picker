@@ -4,12 +4,15 @@ import { ColorSurface } from 'vue-tray-color-picker'
 
 /** Side-by-side candidates. Nothing here ships; it exists to be chosen from. */
 
+/** Each pair is the same idea with and without the white ring. The primed ones
+    build their edge from light instead: an inset rim, a specular arc, a shadow. */
 const THUMBS = [
-  { key: 'thumb-a', name: 'A — Lens', note: 'Current. Clear centre, so the band reads through it.' },
-  { key: 'thumb-b', name: 'B — Bead', note: 'Opaque frosted glass. Solid object, hides the track under it.' },
-  { key: 'thumb-c', name: 'C — Halo', note: 'Hairline ring and a soft glow. Nearly invisible until you look.' },
-  { key: 'thumb-d', name: 'D — Loupe', note: 'Thick bezel, oversized. Reads as an instrument.' },
-  { key: 'thumb-e', name: 'E — Droplet', note: 'Taller than wide, wet highlight. Points at a position rather than covering one.' },
+  { key: 'thumb-a', name: 'A — Lens', note: 'Current. White border, clear centre.' },
+  { key: 'thumb-a2', name: 'A′ — Lens, frameless', note: 'No border. Rim is an inset highlight; the edge comes from the shadow under it.' },
+  { key: 'thumb-b', name: 'B — Bead', note: 'Painted to look frosted. Opaque, hides the track.' },
+  { key: 'thumb-b2', name: 'B′ — Bead, frosted', note: 'Actually frosted: backdrop-filter samples the band, so it carries a wash of the colour beneath.' },
+  { key: 'thumb-e', name: 'E — Droplet', note: 'Taller than wide, white border, wet highlight.' },
+  { key: 'thumb-e2', name: 'E′ — Droplet, frosted', note: 'Same shape, no border, blurred backdrop.' },
 ] as const
 
 const BUTTONS = [
@@ -22,10 +25,10 @@ const BUTTONS = [
   },
   {
     key: 'anny',
-    name: '2 — Host classes',
-    note: 'saveClass / cancelClass only — the light-touch route, no slot involved.',
-    save: 'btn-anny btn-anny--primary',
-    cancel: 'btn-anny btn-anny--secondary',
+    name: '2 — Chosen, now the default',
+    note: 'Filled pills, dark primary. Identical to variant 1 — it ships as the default.',
+    save: '',
+    cancel: '',
   },
   {
     key: 'square',
@@ -70,8 +73,8 @@ function note(message: string) {
       Band thumb
     </h2>
     <p class="case__note">
-      Drag each one. The question is whether the thumb should reveal the colour under it
-      or sit on top of it.
+      Drag each one. Two questions: whether the thumb should reveal the colour under it or
+      sit on top of it, and whether the edge should be a drawn ring or made of light.
     </p>
     <div class="grid">
       <div

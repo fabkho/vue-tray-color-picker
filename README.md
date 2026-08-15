@@ -126,7 +126,7 @@ Every visual value resolves through three tiers, first match wins:
 | `--vtcp-swatch-size` | `2.25rem` |
 | `--vtcp-gap` | `0.625rem` |
 | `--vtcp-surface-muted` | `light-dark(#f4f4f6, #2a2a2e)` |
-| `--vtcp-primary` / `--vtcp-primary-text` | `#2b6af8` / `#fff` |
+| `--vtcp-primary` / `--vtcp-primary-text` | `light-dark(#18181b, #e4e4e7)` / inverted |
 | `--vtcp-tray-gap` / `--vtcp-tray-padding` | `0.5rem` / `0.375rem` |
 | `--vtcp-glass-blur` | `20px` — set to `0` for a flat pill |
 | `--vtcp-glass-surface` | `light-dark(rgb(255 255 255 / 92%), rgb(30 30 30 / 92%))` |

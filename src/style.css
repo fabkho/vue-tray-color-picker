@@ -41,8 +41,8 @@
   --_swatch-size: var(--vtcp-swatch-size, 2.25rem);
   --_gap: var(--vtcp-gap, 0.625rem);
   --_surface-muted: var(--vtcp-surface-muted, var(--ui-surface-muted, light-dark(#f4f4f6, #2a2a2e)));
-  --_primary: var(--vtcp-primary, var(--ui-primary, #2b6af8));
-  --_primary-text: var(--vtcp-primary-text, var(--ui-primary-text, #fff));
+  --_primary: var(--vtcp-primary, var(--ui-primary, light-dark(#18181b, #e4e4e7)));
+  --_primary-text: var(--vtcp-primary-text, var(--ui-primary-text, light-dark(#fff, #18181b)));
 
   /* Tray chrome. Set --vtcp-glass-blur to 0 for a flat pill: backdrop-filter is
      a real rendering cost and reads badly over a busy background. */
@@ -482,17 +482,21 @@
 
 .vtcp-action {
   flex: 1;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  border: 0;
   border-radius: 999px;
+  background: transparent;
   font: inherit;
   font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
 }
 
+/* Filled rather than outlined: an outline next to a solid primary reads as two
+   competing buttons instead of one choice and its escape hatch. */
 .vtcp-action--secondary {
-  border-color: var(--_border);
-  background: transparent;
+  background: var(--_surface-muted);
   color: var(--_text);
 }
 
