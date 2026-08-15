@@ -77,7 +77,7 @@ async function shoot(page, name, targets, pad = PAD) {
 }
 
 const CARD = '.card'
-const TRIGGER = '.row:nth-child(2) .vtcp-trigger'
+const TRIGGER = '.row:last-of-type .vtcp-trigger'
 const TRAY = '.vtcp-tray'
 const SURFACE = '.vtcp-surface'
 const CUSTOM = '.vtcp-swatch--custom'
@@ -214,65 +214,55 @@ const duo = (tray = '03-hover', surface = '05-surface') => `
     <img src="${inline(surface)}" width="360">
   </div>`
 
+/**
+ * The plate: a frosted sheet under the pair, so they read as one object resting
+ * on the ground rather than two cut-outs floating over it.
+ */
+const PLATE = `
+  .plate {
+    padding: 62px 84px;
+    border-radius: 34px;
+    background: rgb(255 255 255 / 40%);
+    backdrop-filter: blur(30px) saturate(140%);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 55%),
+      0 30px 70px rgb(0 0 0 / 14%);
+  }`
+
+/* The whole gradient, not a crop of it. `cover` was cutting most of the image
+   away — only a slice of the supplied artwork ever reached the frame. A soft
+   gradient has no hard edges to distort, so stretching it to the canvas keeps
+   every part of the original visible; the trade is how far the shape is
+   squashed, which is what these aspect ratios are for. */
+const FULL_GROUND = `.ground { background-size: 100% 100%; }`
+
 const HEROES = [
   {
-    /* Sitting in the pale lower half, where a light interface belongs. */
-    name: 'hero-a-pale',
-    size: { width: 1500, height: 620 },
-    css: `.ground { background-position: center 78%; }`,
-    body: `<div class="ground"></div>${duo()}`,
-  },
-  {
-    /* The whole sweep, dark above and pale below, with each panel placed on the
-       scheme it was drawn for. */
-    name: 'hero-b-both',
-    size: { width: 1500, height: 760 },
-    css: `.ground { background-position: center 42%; }
-      .stage { align-items: stretch; gap: 80px; }
-      .col { display: grid; align-content: center; }
-      .col--top { padding-bottom: 220px; }
-      .col--bottom { padding-top: 220px; }`,
-    body: `<div class="ground"></div>
-      <div class="stage">
-        <div class="col col--bottom"><img src="${inline('03-hover')}" width="620"></div>
-        <div class="col col--top"><img src="${inline('09-surface-dark')}" width="330"></div>
-      </div>`,
-  },
-  {
-    /* Flipped, so the light falls from below and the dark sits under the
-       panels rather than over them. */
-    name: 'hero-c-inverted',
-    size: { width: 1500, height: 620 },
-    css: `.ground { transform: rotate(180deg); background-position: center 62%; }`,
-    body: `<div class="ground"></div>${duo()}`,
-  },
-  {
-    /* A frosted plate under the pair, so they read as one object on the ground
-       instead of two cut-outs floating on it. */
-    name: 'hero-d-plate',
-    size: { width: 1560, height: 660 },
-    css: `.ground { background-position: center 74%; }
-      .plate {
-        padding: 64px 88px;
-        border-radius: 34px;
-        background: rgb(255 255 255 / 42%);
-        backdrop-filter: blur(28px) saturate(140%);
-        box-shadow:
-          inset 0 0 0 1px rgb(255 255 255 / 55%),
-          0 30px 70px rgb(0 0 0 / 12%);
-      }`,
+    name: 'hero-d1-wide',
+    size: { width: 1600, height: 680 },
+    css: `${FULL_GROUND}${PLATE}`,
     body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
   },
   {
-    /* Dark panels in the dark half. The drop shadow does nothing here, so the
-       separation has to come from the panels' own edges. */
-    name: 'hero-e-dark',
-    size: { width: 1500, height: 620 },
-    css: `.ground { background-position: center 12%; }
-      img { filter:
-        drop-shadow(0 2px 6px rgb(0 0 0 / 30%))
-        drop-shadow(0 24px 50px rgb(0 0 0 / 34%)); }`,
-    body: `<div class="ground"></div>${duo('08-tray-dark', '09-surface-dark')}`,
+    name: 'hero-d2-balanced',
+    size: { width: 1600, height: 900 },
+    css: `${FULL_GROUND}${PLATE}`,
+    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
+  },
+  {
+    /* The gradient's own 4:3, so it is shown exactly as drawn. */
+    name: 'hero-d3-native',
+    size: { width: 1600, height: 1200 },
+    css: `${FULL_GROUND}${PLATE}`,
+    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
+  },
+  {
+    /* Flipped, so the dark lobe sits under the plate instead of above it. */
+    name: 'hero-d4-inverted',
+    size: { width: 1600, height: 900 },
+    css: `${FULL_GROUND}${PLATE}
+      .ground { transform: rotate(180deg); }`,
+    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
   },
 ]
 
