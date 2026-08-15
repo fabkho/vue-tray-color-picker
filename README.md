@@ -10,6 +10,10 @@ that every colour a user can reach is one worth shipping.
 
 ![The tray, the shade ladder behind the +, and the mixed colour kept as a recent](./docs/demo.gif)
 
+<sub>A gif is the only format a readme plays inline from the repository —
+[`docs/demo.mp4`](./docs/demo.mp4) is the same take at full resolution.
+Regenerate both with `pnpm demo:record`.</sub>
+
 ## The problem
 
 Colour pickers come in two shapes, and both fail the same job.

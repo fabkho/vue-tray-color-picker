@@ -33,13 +33,16 @@ const color = ref<string | null>('#1bc98e')
   min-height: 100vh;
   place-items: center;
   background: light-dark(#f4f4f6, #131316);
+  /* Rendered large so the recording can crop in without upscaling much. The
+     component is sized in rem throughout, so this scales it crisply. */
+  font-size: 20px;
 }
 
 .card {
   display: grid;
   gap: 1rem;
-  width: 20rem;
-  padding: 1.5rem;
+  width: 22rem;
+  padding: 1.75rem;
   border: 1px solid light-dark(rgb(0 0 0 / 8%), rgb(255 255 255 / 10%));
   border-radius: 1rem;
   background: light-dark(#fff, #1e1e21);

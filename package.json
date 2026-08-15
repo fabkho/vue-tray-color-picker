@@ -50,7 +50,7 @@
   },
   "scripts": {
     "build": "vite build",
-    "dev": "pnpm --filter playground dev",
+    "dev": "pnpm -C playground dev",
     "demo:record": "node scripts/record-demo.mjs",
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
