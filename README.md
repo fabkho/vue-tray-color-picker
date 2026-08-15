@@ -133,12 +133,21 @@ Every visual value resolves through three tiers, first match wins:
 | `--vtcp-glass-border` | `light-dark(rgb(210 214 222 / 40%), rgb(255 255 255 / 8%))` |
 | `--vtcp-glass-shadow` | a soft ambient shadow |
 | `--vtcp-burst-step` | `-3.25rem` — how far the swatches fly in from |
-| `--vtcp-thumb-size` | `1.375rem` — the band's lens |
+| `--vtcp-band-height` | `1.25rem` |
+| `--vtcp-thumb-width` / `--vtcp-thumb-height` | `1.0625rem` / `1.75rem` |
+| `--vtcp-thumb-radius` | `0.6rem` |
+| `--vtcp-thumb-blur` | `3px` — the band's frost |
+| `--vtcp-thumb-fill` | `rgb(255 255 255 / 10%)` |
 
 The tray is a translucent pill with a backdrop blur, and its swatches burst in
 staggered from the trigger. Both are the point rather than decoration, but
 `--vtcp-glass-blur: 0` gives a flat pill if the blur is too expensive or reads
 badly over a busy background, and `prefers-reduced-motion` removes the burst.
+
+The band's thumb is frosted rather than solid: `backdrop-filter` samples the
+band beneath it, so it carries a wash of the colour it is sitting on and changes
+hue as you drag. Where `backdrop-filter` is unsupported it falls back to a
+translucent white body.
 
 **Dark mode** is `light-dark()` against the inherited `color-scheme`. There is no
 class or data-attribute convention to adopt — but you do need to declare

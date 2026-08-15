@@ -34,7 +34,6 @@ const liveTray = ref<string | null>('#e2a04f')
   <h1>vue-tray-color-picker</h1>
   <p class="subtitle">
     Development surface. Cases are seeded with the awkward inputs, not a happy path.
-    <a href="/variants.html">Style variants →</a>
   </p>
 
   <section class="case">

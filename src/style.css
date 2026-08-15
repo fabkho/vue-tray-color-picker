@@ -58,8 +58,14 @@
   /* How far the items fly in from. */
   --_burst-step: var(--vtcp-burst-step, -3.25rem);
 
-  /* The band's lens. Larger than the track so it reads as sitting on top. */
-  --_thumb-size: var(--vtcp-thumb-size, 1.375rem);
+  /* The band's lens: taller than wide, so it points at a position rather than
+     covering one, and taller than the track so it reads as sitting on top. */
+  --_thumb-width: var(--vtcp-thumb-width, 1.0625rem);
+  --_thumb-height: var(--vtcp-thumb-height, 1.75rem);
+  --_thumb-radius: var(--vtcp-thumb-radius, 0.6rem);
+  --_thumb-blur: var(--vtcp-thumb-blur, 3px);
+  --_thumb-fill: var(--vtcp-thumb-fill, rgb(255 255 255 / 10%));
+  --_band-height: var(--vtcp-band-height, 1.25rem);
 
   box-sizing: border-box;
   color: var(--_text);
@@ -341,7 +347,7 @@
 
 .vtcp-band {
   width: 100%;
-  height: 0.75rem;
+  height: var(--_band-height);
   /* The lens overhangs the track; without this the UA clips it to the band. */
   overflow: visible;
   appearance: none;
@@ -365,43 +371,76 @@
 }
 
 /**
- * A lens, not a ring. The centre stays clear so the band reads through it — the
- * thumb shows you the colour it is sitting on rather than covering it — and the
- * glass is built from a bright rim, a specular highlight up and left, and a
- * grounding shadow below. `backdrop-filter` is deliberately absent: blurring the
- * band under a magnifier is the opposite of the effect.
+ * A lens, not a ring. The centre is frosted rather than clear: `backdrop-filter`
+ * samples the band underneath, so the thumb carries a wash of the colour it is
+ * sitting on and changes hue as it moves. The edge is made of light — an inset
+ * rim, a specular arc along the top, a shadow underneath — rather than a drawn
+ * white ring, which read as a hole punched in the band.
+ *
+ * The blur is deliberately gentle. A heavier frost turns the band beneath into
+ * a suggestion, and the point is to reveal the colour, not to obscure it.
+ *
+ * Both engines need their own rule: each discards the whole declaration if the
+ * other's selector shares it.
  */
 .vtcp-band::-webkit-slider-thumb {
-  width: var(--_thumb-size);
-  height: var(--_thumb-size);
+  width: var(--_thumb-width);
+  height: var(--_thumb-height);
   appearance: none;
-  border-radius: 999px;
-  border: 1.5px solid rgb(255 255 255 / 90%);
-  background:
-    radial-gradient(circle at 34% 26%, rgb(255 255 255 / 78%), rgb(255 255 255 / 10%) 44%, transparent 62%),
-    radial-gradient(circle at 50% 118%, rgb(255 255 255 / 30%), transparent 52%);
+  border: 0;
+  border-radius: var(--_thumb-radius);
+  background: var(--_thumb-fill);
+  backdrop-filter: blur(var(--_thumb-blur)) saturate(140%) brightness(104%);
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 30%),
-    0 4px 10px rgb(0 0 0 / 16%),
-    inset 0 0 0 1px rgb(255 255 255 / 40%),
-    inset 0 -2px 5px rgb(0 0 0 / 14%);
+    inset 0 0 0 1px rgb(255 255 255 / 30%),
+    inset 0 2px 3px rgb(255 255 255 / 45%),
+    inset 0 -5px 9px rgb(0 0 0 / 10%),
+    0 1px 3px rgb(0 0 0 / 16%),
+    0 4px 9px rgb(0 0 0 / 9%);
   cursor: grab;
 }
 
 .vtcp-band::-moz-range-thumb {
-  width: var(--_thumb-size);
-  height: var(--_thumb-size);
-  border-radius: 999px;
-  border: 1.5px solid rgb(255 255 255 / 90%);
-  background:
-    radial-gradient(circle at 34% 26%, rgb(255 255 255 / 78%), rgb(255 255 255 / 10%) 44%, transparent 62%),
-    radial-gradient(circle at 50% 118%, rgb(255 255 255 / 30%), transparent 52%);
+  width: var(--_thumb-width);
+  height: var(--_thumb-height);
+  border: 0;
+  border-radius: var(--_thumb-radius);
+  background: var(--_thumb-fill);
+  backdrop-filter: blur(var(--_thumb-blur)) saturate(140%) brightness(104%);
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 30%),
-    0 4px 10px rgb(0 0 0 / 16%),
-    inset 0 0 0 1px rgb(255 255 255 / 40%),
-    inset 0 -2px 5px rgb(0 0 0 / 14%);
+    inset 0 0 0 1px rgb(255 255 255 / 30%),
+    inset 0 2px 3px rgb(255 255 255 / 45%),
+    inset 0 -5px 9px rgb(0 0 0 / 10%),
+    0 1px 3px rgb(0 0 0 / 16%),
+    0 4px 9px rgb(0 0 0 / 9%);
   cursor: grab;
+}
+
+/**
+ * Without backdrop-filter the frost is the fill alone, and at 10% that is
+ * almost nothing — the thumb would all but disappear against a light band. Give
+ * it a body to fall back on.
+ */
+@supports not (backdrop-filter: blur(1px)) {
+  .vtcp-band::-webkit-slider-thumb {
+    background: rgb(255 255 255 / 45%);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 70%),
+      inset 0 2px 3px rgb(255 255 255 / 80%),
+      inset 0 -5px 9px rgb(0 0 0 / 12%),
+      0 1px 3px rgb(0 0 0 / 22%),
+      0 4px 9px rgb(0 0 0 / 12%);
+  }
+
+  .vtcp-band::-moz-range-thumb {
+    background: rgb(255 255 255 / 45%);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 70%),
+      inset 0 2px 3px rgb(255 255 255 / 80%),
+      inset 0 -5px 9px rgb(0 0 0 / 12%),
+      0 1px 3px rgb(0 0 0 / 22%),
+      0 4px 9px rgb(0 0 0 / 12%);
+  }
 }
 
 .vtcp-band:active::-webkit-slider-thumb {
