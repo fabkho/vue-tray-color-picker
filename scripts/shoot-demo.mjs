@@ -214,55 +214,76 @@ const duo = (tray = '03-hover', surface = '05-surface') => `
     <img src="${inline(surface)}" width="360">
   </div>`
 
+/* The whole gradient, not a crop of it. `cover` cut most of the supplied
+   artwork away. A soft gradient has no hard edges to distort, so stretching it
+   to the canvas keeps every part visible; the only cost is how far the shape is
+   squashed. Flipped, so the light falls from above and the dark settles under
+   the composition. */
+const GROUND = `.ground { background-size: 100% 100%; transform: rotate(180deg); }`
+
 /**
  * The plate: a frosted sheet under the pair, so they read as one object resting
- * on the ground rather than two cut-outs floating over it.
+ * on the ground rather than two cut-outs floating over it. Five variations of
+ * the same idea, differing only in how present the sheet is.
  */
-const PLATE = `
+const plate = ({ fill, blur, rim, pad, shadow }) => `
   .plate {
-    padding: 62px 84px;
+    padding: ${pad};
     border-radius: 34px;
-    background: rgb(255 255 255 / 40%);
-    backdrop-filter: blur(30px) saturate(140%);
+    background: rgb(255 255 255 / ${fill});
+    backdrop-filter: blur(${blur}) saturate(140%);
     box-shadow:
-      inset 0 0 0 1px rgb(255 255 255 / 55%),
-      0 30px 70px rgb(0 0 0 / 14%);
+      inset 0 0 0 1px rgb(255 255 255 / ${rim}),
+      ${shadow};
   }`
-
-/* The whole gradient, not a crop of it. `cover` was cutting most of the image
-   away — only a slice of the supplied artwork ever reached the frame. A soft
-   gradient has no hard edges to distort, so stretching it to the canvas keeps
-   every part of the original visible; the trade is how far the shape is
-   squashed, which is what these aspect ratios are for. */
-const FULL_GROUND = `.ground { background-size: 100% 100%; }`
 
 const HEROES = [
   {
-    name: 'hero-d1-wide',
-    size: { width: 1600, height: 680 },
-    css: `${FULL_GROUND}${PLATE}`,
-    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
-  },
-  {
-    name: 'hero-d2-balanced',
+    name: 'hero-1-baseline',
     size: { width: 1600, height: 900 },
-    css: `${FULL_GROUND}${PLATE}`,
+    css: `${GROUND}${plate({ fill: '40%', blur: '30px', rim: '55%', pad: '62px 84px', shadow: '0 30px 70px rgb(0 0 0 / 14%)' })}`,
     body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
   },
   {
-    /* The gradient's own 4:3, so it is shown exactly as drawn. */
-    name: 'hero-d3-native',
-    size: { width: 1600, height: 1200 },
-    css: `${FULL_GROUND}${PLATE}`,
+    /* Tighter, so the panels carry the frame instead of the sheet. */
+    name: 'hero-2-tight',
+    size: { width: 1500, height: 780 },
+    css: `${GROUND}${plate({ fill: '38%', blur: '30px', rim: '52%', pad: '44px 58px', shadow: '0 26px 60px rgb(0 0 0 / 14%)' })}
+      .stage { gap: 72px; }`,
     body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
   },
   {
-    /* Flipped, so the dark lobe sits under the plate instead of above it. */
-    name: 'hero-d4-inverted',
+    /* Barely there: more blur, less fill, so the ground reads through it. */
+    name: 'hero-3-clearer',
     size: { width: 1600, height: 900 },
-    css: `${FULL_GROUND}${PLATE}
-      .ground { transform: rotate(180deg); }`,
+    css: `${GROUND}${plate({ fill: '18%', blur: '44px', rim: '38%', pad: '62px 84px', shadow: '0 30px 70px rgb(0 0 0 / 10%)' })}`,
     body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
+  },
+  {
+    /* Nearly opaque, closer to a solid panel than a pane of glass. */
+    name: 'hero-4-solid',
+    size: { width: 1600, height: 900 },
+    css: `${GROUND}${plate({ fill: '68%', blur: '24px', rim: '78%', pad: '62px 84px', shadow: '0 34px 80px rgb(0 0 0 / 16%)' })}`,
+    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
+  },
+  {
+    /* No sheet at all — a soft bloom behind the pair does the grouping, so
+       nothing has an edge of its own. */
+    name: 'hero-5-bloom',
+    size: { width: 1600, height: 900 },
+    css: `${GROUND}
+      .bloom {
+        position: relative;
+        padding: 62px 84px;
+      }
+      .bloom::before {
+        content: "";
+        position: absolute; inset: -40px;
+        border-radius: 50%;
+        background: radial-gradient(60% 55% at 50% 50%, rgb(255 255 255 / 55%), rgb(255 255 255 / 0%) 70%);
+      }
+      .bloom .stage { position: relative; }`,
+    body: `<div class="ground"></div><div class="bloom">${duo()}</div>`,
   },
 ]
 

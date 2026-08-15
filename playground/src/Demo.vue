@@ -110,13 +110,18 @@ html.bare .stage {
   letter-spacing: -0.01em;
 }
 
-/* Swatch first. With the trigger against the card's right edge the tray has
-   nowhere to open into and gets shifted back across the card; from the left it
-   opens cleanly into the space beside it. */
+/**
+ * A fixed label column rather than a flex gap. Labels of different lengths put
+ * each swatch at a different x, and a column of controls that does not line up
+ * is the first thing the eye catches.
+ *
+ * Swatch after the label, not at the card's right edge: from the right the tray
+ * has nowhere to open into and gets shifted back across the card.
+ */
 .row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 5.5rem auto;
   align-items: center;
-  gap: 0.875rem;
   padding: 0.5rem 0;
 }
 
