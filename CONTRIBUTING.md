@@ -68,22 +68,19 @@ A demo that only shows one picker on a white background tells you nothing.
 `pnpm demo:record` drives `playground/demo.html` with Playwright and writes
 `docs/demo.gif` and `docs/demo.mp4`.
 
-The camera move is scripted, not inferred. Auto-zoom recorders have to guess
-where a click landed by watching pixels; here every interaction is ours, so the
-element and the moment are already known.
+The camera is scripted, not inferred. Auto-zoom recorders have to guess where a
+click landed by watching pixels; here every interaction is ours, so the element
+and the moment are already known.
 
-It follows the cursor rather than cutting between element framings, from two
-inputs. A **subject** — the container currently worth looking at — sets the zoom
-and anchors the shot. The **cursor** then pulls the frame around within it, by
-`focusOn(target, fill, follow)`'s follow weight: high where moving across the
-thing is the point (panning the tray), low where the shot is a composition, so
-arriving somewhere centres it instead of being dragged to wherever the pointer
-was left.
+**Three shots, and nothing between them.** Each centres what is on screen and
+pulls back just enough to hold it: the card, then the card with its tray, then
+both with the surface open. Hovering the swatches, dragging the band, picking a
+shade and reopening the tray at the end all happen with the camera still. An
+earlier version followed the cursor and panned across the tray; it was
+technically fancier and much worse to watch.
 
-How far the cursor may drag the frame is the difference between the window and
-the subject. When the subject is smaller, that is the slack left over, so it can
-never be pushed out of shot; when it is larger, it is how far the window can
-travel inside it, so the camera pans across rather than locking to the middle.
+Zoom is derived from how much of the frame the subject should fill, because a
+level that frames the tray crops the surface, which is twice as tall.
 
 Things that cost time to find, in rough order of how much:
 
@@ -99,17 +96,14 @@ Things that cost time to find, in rough order of how much:
   `font-size` on the stage does nothing — every `rem` in the component stays at
   the browser default. It has to go on `html`.
 - **Keyframes come in pairs.** The ramp interpolates between consecutive keys,
-  so two keys far apart mean the camera drifts for the whole gap. A deliberate
-  move pins the current framing first. Without that the camera never stops,
-  which reads as a wobble — and it multiplies the gif, because gifs store what
-  changed between frames and a moving camera changes all of them.
-- **Zoom is derived from the subject**, as the fraction of the frame it should
-  fill. A level that frames the tray crops the surface, which is half as wide
-  and twice as tall.
-- **Read a popover's box after it has been positioned**, and expect it where the
-  layout actually puts it. The surface flips above the tray when there is no
-  room below, so centring on it alone runs off the viewport edge and the clamp
-  shoves it into a corner; it is framed together with the tray instead.
+  so two keys far apart mean the camera drifts for the whole gap rather than
+  holding. Each shot pins the current framing before moving. Without that the
+  camera never stops, which reads as a wobble — and it multiplies the gif,
+  because gifs store what changed between frames and a moving camera changes
+  all of them. Holding still is why the gif is under a megabyte.
+- **Frame the surface together with the tray.** It flips above the tray when
+  there is no room below, so centring on it alone runs off the viewport edge and
+  the clamp shoves it into a corner.
 
 Two ffmpeg notes: `crop` cannot do this at all, because its width and height are
 evaluated once at filter setup, so its window can move but never resize. And

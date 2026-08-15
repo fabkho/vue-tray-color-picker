@@ -88,44 +88,12 @@ const at = () => (frames.length > 0 ? frames[frames.length - 1].t : firstFrameAt
 /**
  * Keyframes of `{ t, z, cx, cy }` in CSS pixels.
  *
- * The camera follows the cursor rather than cutting between element framings.
- * Two inputs: a *subject* — the container currently worth looking at, which
- * sets the zoom and anchors the shot — and the cursor, which pulls the frame
- * around within it. That is what hand-made demos do: you zoom in when you click
- * something, then the view drifts along as you move across it.
+ * Three shots, and nothing between them. Each one centres what is on screen and
+ * pulls back just enough to hold it: the card, then the card with its tray, then
+ * both with the surface open. Everything else — hovering the swatches, dragging
+ * the band, picking a shade — happens with the camera still.
  */
 const camera = []
-
-const cursor = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 }
-let subject = null
-
-/**
- * How hard the cursor pulls the frame away from the subject's centre, set per
- * subject. High where moving across the thing is the point — panning the tray —
- * and low where the shot is a composition, so that arriving on the surface
- * centres it instead of being dragged to wherever the pointer was left.
- */
-function framing() {
-  const pull = subject.follow
-  const blendX = subject.cx * (1 - pull) + cursor.x * pull
-  const blendY = subject.cy * (1 - pull) + cursor.y * pull
-
-  /**
-   * How far the cursor may drag the frame. When the subject is smaller than the
-   * window this is the slack left over, so it can never be pushed out of shot;
-   * when it is larger, it is how far the window can travel inside it, so the
-   * camera pans across rather than locking to the middle. The absolute value
-   * covers both without a branch.
-   */
-  const driftX = Math.abs(VIEWPORT.width / subject.z / 2 - subject.width / 2)
-  const driftY = Math.abs(VIEWPORT.height / subject.z / 2 - subject.height / 2)
-
-  return {
-    z: subject.z,
-    cx: Math.min(Math.max(blendX, subject.cx - driftX), subject.cx + driftX),
-    cy: Math.min(Math.max(blendY, subject.cy - driftY), subject.cy + driftY),
-  }
-}
 
 async function boxOf(target) {
   const locators = Array.isArray(target) ? target : [target]
@@ -139,20 +107,17 @@ async function boxOf(target) {
 }
 
 /**
- * Change what the camera is looking at. `fill` is how much of the frame the
- * subject should occupy on its constraining axis — derived rather than
- * hard-coded, because a zoom that frames the tray crops the surface, which is
- * half as wide and twice as tall. Above 1 the subject overflows on purpose, so
- * the camera has somewhere to pan.
+ * `fill` is how much of the frame the subject should occupy on its constraining
+ * axis — derived rather than hard-coded, because a level that frames the tray
+ * crops the surface, which is twice as tall.
  */
-async function focusOn(target, fill, follow = 0.25, move = 0.75) {
+async function focusOn(target, fill, move = 0.75) {
   const box = await boxOf(target)
   if (!box) return
 
-  /* Capped at the supersample factor: beyond it the window is smaller than the
-     output and the camera is upscaling, which is exactly what recording large
-     was meant to avoid. The demo page is sized so the tightest shot lands on
-     this cap. */
+  /* Capped at the supersample factor: past it the window is smaller than the
+     output and the camera is upscaling, which is what recording large was meant
+     to avoid. The demo page is sized so the tightest shot lands on the cap. */
   const z = Math.max(1, Math.min(
     VIEWPORT.width * fill / box.width,
     VIEWPORT.height * fill / box.height,
@@ -160,32 +125,32 @@ async function focusOn(target, fill, follow = 0.25, move = 0.75) {
   ))
 
   /* Pin the current framing before moving, or the ramp interpolates across the
-     whole gap since the last key and the camera never stops drifting. */
+     whole gap since the last key and the camera never actually holds. */
   if (camera.length > 0) camera.push({ ...camera[camera.length - 1], t: at() })
 
-  subject = {
+  const shot = {
+    z,
     cx: (box.left + box.right) / 2,
     cy: (box.top + box.bottom) / 2,
-    width: box.width,
-    height: box.height,
-    z,
-    follow,
   }
-  const shot = framing()
   if (process.env.DEMO_DEBUG) {
-    console.log(`focus box=${Math.round(box.left)},${Math.round(box.top)} ${Math.round(box.width)}x${Math.round(box.height)} z=${z.toFixed(2)} centre=${Math.round(shot.cx)},${Math.round(shot.cy)} subject=${Math.round(subject.cx)},${Math.round(subject.cy)} cursor=${Math.round(cursor.x)},${Math.round(cursor.y)}`)
+    console.log(`shot ${Math.round(box.width)}x${Math.round(box.height)} z=${z.toFixed(2)} centre=${Math.round(shot.cx)},${Math.round(shot.cy)}`)
   }
   camera.push({ t: at() + move, ...shot })
 }
 
-/** Move the real cursor, and let the camera trail after it. */
-async function moveCursorTo(target, lag = 0.32) {
+/** Moves the pointer. The camera is not told, and does not care. */
+async function pointAt(target) {
   const box = await boxOf(target)
   if (!box) return
-  cursor.x = (box.left + box.right) / 2
-  cursor.y = (box.top + box.bottom) / 2
-  await page.mouse.move(cursor.x, cursor.y)
-  if (subject) camera.push({ t: at() + lag, ...framing() })
+  await page.mouse.move((box.left + box.right) / 2, (box.top + box.bottom) / 2)
+}
+
+async function clickAt(target) {
+  await pointAt(target)
+  await pause(320)
+  await page.mouse.down()
+  await page.mouse.up()
 }
 
 const card = page.locator('.card')
@@ -193,55 +158,44 @@ const trigger = page.locator('.vtcp-trigger')
 const tray = page.locator('.vtcp-tray')
 const swatches = page.locator('.vtcp-tray__group [role="radio"]')
 const custom = page.locator('.vtcp-swatch--custom')
+const surface = page.locator('.vtcp-surface')
 
-// ─── The trigger ───
+// ─── Shot 1: close on the card ───
 
-await focusOn(card, 0.55, 0.3)
-await pause(500)
-await moveCursorTo(trigger)
-await pause(450)
-await page.mouse.down()
-await page.mouse.up()
-await pause(250)
+await focusOn(card, 1)
+await pause(650)
 
-// ─── The tray: centred on it, pushed in, then panned across ───
+await clickAt(trigger)
+await pause(200)
 
-await focusOn(tray, 1, 0.85)
-await pause(700)
+// ─── Shot 2: out a little, to hold the tray ───
 
+await focusOn([card, tray], 0.8)
+await pause(650)
+
+/* Four swatches, spread across whatever the tray happens to hold, so the lift
+   reads without turning into a tour. */
 const count = await swatches.count()
-for (let index = 0; index < count; index++) {
-  await moveCursorTo(swatches.nth(index))
-  await pause(300)
+for (let step = 0; step < 4; step++) {
+  await pointAt(swatches.nth(Math.round(step * (count - 1) / 3)))
+  await pause(480)
 }
 
-await moveCursorTo(custom)
-await pause(380)
-await page.mouse.down()
-await page.mouse.up()
-await pause(550)
+await clickAt(custom)
+await pause(450)
 
-// ─── The surface, nearly centred ───
+// ─── Shot 3: out again, so the open surface fits ───
 
-/* Framed with the tray rather than alone. The surface is over half the frame
-   tall and flips to the top-right when there is no room below, so centring on
-   it by itself runs off the viewport edge and the clamp shoves it back into a
-   corner. The pair composes; the surface is the larger element and dominates
-   anyway. */
-const surface = page.locator('.vtcp-surface')
-await focusOn([tray, surface], 0.92, 0.15)
-await pause(750)
+await focusOn([card, tray, surface], 0.86)
+await pause(700)
 
 const hue = page.locator('.vtcp-band--hue')
 const band = await hue.boundingBox()
-cursor.x = band.x + band.width * 0.62
-cursor.y = band.y + band.height / 2
-await page.mouse.move(cursor.x, cursor.y)
+await page.mouse.move(band.x + band.width * 0.62, band.y + band.height / 2)
 await page.mouse.down()
 for (let step = 0; step <= 26; step++) {
-  cursor.x = band.x + band.width * (0.62 + (0.42 - 0.62) * (step / 26))
-  await page.mouse.move(cursor.x, cursor.y)
-  if (step % 6 === 0) camera.push({ t: at() + 0.3, ...framing() })
+  const fraction = 0.62 + (0.42 - 0.62) * (step / 26)
+  await page.mouse.move(band.x + band.width * fraction, band.y + band.height / 2)
   await pause(26)
 }
 await page.mouse.up()
@@ -249,29 +203,20 @@ await pause(450)
 
 const shades = page.locator('.vtcp-shade')
 for (const index of [4, 2]) {
-  await moveCursorTo(shades.nth(index))
+  await pointAt(shades.nth(index))
   await pause(400)
 }
 await page.mouse.down()
 await page.mouse.up()
 await pause(500)
 
-await moveCursorTo(page.locator('.vtcp-action--primary'))
-await pause(350)
-await page.mouse.down()
-await page.mouse.up()
-
-// ─── Back out for the payoff ───
-
-await focusOn(card, 0.55, 0.2)
+await clickAt(page.locator('.vtcp-action--primary'))
 await pause(800)
-await moveCursorTo(trigger)
-await pause(300)
-await page.mouse.down()
-await page.mouse.up()
-await pause(250)
-await focusOn(tray, 0.9, 0.3)
-await pause(1500)
+
+/* The payoff, at the framing we are already in: the mixed colour is now sitting
+   in the tray. Reopening costs no camera move because shot 3 still holds it. */
+await clickAt(trigger)
+await pause(1600)
 
 await client.send('Page.stopScreencast')
 await pause(200)
