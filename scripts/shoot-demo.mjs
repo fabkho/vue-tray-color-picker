@@ -77,13 +77,13 @@ async function shoot(page, name, targets, pad = PAD) {
 }
 
 const CARD = '.card'
-const TRIGGER = '.vtcp-trigger'
+const TRIGGER = '.row:nth-child(2) .vtcp-trigger'
 const TRAY = '.vtcp-tray'
 const SURFACE = '.vtcp-surface'
 const CUSTOM = '.vtcp-swatch--custom'
 
 async function openTray(page) {
-  await page.locator(TRIGGER).click()
+  await page.locator(TRIGGER).first().click()
   await page.waitForSelector(TRAY)
   await pause(450)
 }
@@ -169,73 +169,128 @@ const written = []
 
 /**
  * Composed in HTML rather than with an image tool, so the presentation has real
- * shadows, a real gradient and real type — the three states as physical cards
- * on a soft ground. The stills are inlined as data URLs, so this needs no
- * server and no temporary files.
+ * shadows, a real gradient and real type. The stills are inlined as data URLs,
+ * so this needs no server and no temporary files.
+ *
+ * Shadows are `filter: drop-shadow`, not `box-shadow`: the shots are
+ * transparent, so the shadow has to follow the component's rounded shape rather
+ * than a rectangle around the image.
  */
 const inline = name =>
   `data:image/png;base64,${readFileSync(join(OUT_DIR, `${name}.png`)).toString('base64')}`
 
-const HERO = `<!doctype html>
-<meta charset="utf-8">
-<style>
+const CHROME = `
   * { box-sizing: border-box; margin: 0; }
   body {
-    width: 1600px; height: 560px;
     display: grid; place-items: center;
     font: 400 15px/1.4 -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
     color: #1d1d1f;
-    /* A very light, faintly cool ground with one soft highlight, rather than a
-       flat fill or a saturated gradient. */
     background:
       radial-gradient(120% 90% at 50% -20%, #fff 0%, rgb(255 255 255 / 0%) 60%),
       linear-gradient(168deg, #f5f5f7 0%, #ebecf0 100%);
   }
-  .stage { display: flex; align-items: flex-end; gap: 68px; padding: 0 88px; }
-  figure { display: grid; gap: 22px; justify-items: center; }
   img {
     display: block;
-    /* Layered rather than one blur: a mid lift and a wide ambient fall-off. A
-       single shadow reads as a sticker. Applied as a filter, not box-shadow,
-       because the images are transparent and the shadow has to follow the
-       component's own rounded shape rather than a rectangle around it. */
     filter:
       drop-shadow(0 2px 4px rgb(0 0 0 / 6%))
       drop-shadow(0 14px 30px rgb(0 0 0 / 10%))
       drop-shadow(0 40px 70px rgb(0 0 0 / 8%));
   }
+  figure { display: grid; gap: 22px; justify-items: center; }
   figcaption { font-size: 15px; letter-spacing: -0.01em; color: #6e6e73; text-align: center; }
   figcaption b { display: block; font-weight: 590; color: #1d1d1f; letter-spacing: -0.015em; }
-</style>
-<div class="stage">
-  <figure>
-    <img src="${inline('01-closed')}" width="470">
-    <figcaption><b>Resting</b>One swatch in a form row</figcaption>
-  </figure>
-  <figure>
-    <img src="${inline('03-hover')}" width="500">
-    <figcaption><b>The tray</b>Presets, one tap away</figcaption>
-  </figure>
-  <figure>
-    <img src="${inline('05-surface')}" width="315">
-    <figcaption><b>The picker</b>Hue, shades, greys, hex</figcaption>
-  </figure>
-</div>`
+`
 
-{
+const HEROES = [
+  {
+    name: 'hero-1-trio',
+    size: { width: 1600, height: 620 },
+    css: `.stage { display: flex; align-items: flex-end; gap: 64px; }`,
+    body: `<div class="stage">
+      <figure><img src="${inline('01-closed')}" width="380">
+        <figcaption><b>In a form</b>One control among others</figcaption></figure>
+      <figure><img src="${inline('03-hover')}" width="470">
+        <figcaption><b>The tray</b>Presets, one tap away</figcaption></figure>
+      <figure><img src="${inline('05-surface')}" width="300">
+        <figcaption><b>The picker</b>Hue, shades, greys, hex</figcaption></figure>
+    </div>`,
+  },
+  {
+    name: 'hero-2-duo',
+    size: { width: 1500, height: 620 },
+    css: `.stage { display: flex; align-items: center; gap: 96px; }`,
+    body: `<div class="stage">
+      <img src="${inline('03-hover')}" width="660">
+      <img src="${inline('05-surface')}" width="360">
+    </div>`,
+  },
+  {
+    name: 'hero-3-layered',
+    size: { width: 1500, height: 700 },
+    /* Overlapped and scaled rather than lined up: depth does the work captions
+       would otherwise have to. */
+    css: `.stage { position: relative; width: 1180px; height: 520px; }
+      .stage img { position: absolute; }
+      .back  { left: 0;    top: 96px;  width: 400px; opacity: .96; }
+      .mid   { left: 250px; top: 176px; width: 560px; }
+      .front { right: 40px; top: 0;    width: 340px; }`,
+    body: `<div class="stage">
+      <img class="back" src="${inline('01-closed')}">
+      <img class="mid" src="${inline('03-hover')}">
+      <img class="front" src="${inline('05-surface')}">
+    </div>`,
+  },
+  {
+    name: 'hero-4-spotlight',
+    size: { width: 1500, height: 760 },
+    css: `.stage { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+        gap: 56px; }
+      .side { display: grid; gap: 40px; justify-items: center; }
+      .side img { width: 330px; }
+      .hero-shot { width: 400px; }`,
+    body: `<div class="stage">
+      <div class="side"><img src="${inline('01-closed')}"></div>
+      <img class="hero-shot" src="${inline('05-surface')}">
+      <div class="side"><img src="${inline('03-hover')}"></div>
+    </div>`,
+  },
+  {
+    name: 'hero-5-schemes',
+    size: { width: 1500, height: 620 },
+    /* A ground that is light on one side and dark on the other, so each shot
+       sits on the scheme it belongs to instead of one of them looking wrong. */
+    css: `body { background: linear-gradient(100deg, #f5f5f7 0%, #eceef2 46%, #1c1c1e 54%, #101012 100%); }
+      .stage { display: flex; align-items: center; gap: 110px; }
+      figcaption { color: #6e6e73; }
+      .dark figcaption, .dark figcaption b { color: #f5f5f7; }`,
+    body: `<div class="stage">
+      <figure><img src="${inline('03-hover')}" width="470">
+        <figcaption><b>Light</b>Follows the host's colour-scheme</figcaption></figure>
+      <figure class="dark"><img src="${inline('09-surface-dark')}" width="300">
+        <figcaption><b>Dark</b>No class convention to adopt</figcaption></figure>
+    </div>`,
+  },
+]
+
+for (const hero of HEROES) {
   const context = await browser.newContext({
-    viewport: { width: 1600, height: 560 },
+    viewport: hero.size,
     deviceScaleFactor: DPR,
     colorScheme: 'light',
   })
   const page = await context.newPage()
-  await page.setContent(HERO, { waitUntil: 'load' })
-  await pause(350)
-  await page.screenshot({ path: join('docs', 'hero.png') })
+  await page.setContent(
+    `<!doctype html><meta charset="utf-8"><style>${CHROME}
+     body { width: ${hero.size.width}px; height: ${hero.size.height}px; }
+     ${hero.css}</style>${hero.body}`,
+    { waitUntil: 'load' },
+  )
+  await pause(300)
+  await page.screenshot({ path: join('docs', `${hero.name}.png`) })
   await context.close()
-  written.push('hero')
+  written.push(hero.name)
 }
 
 await browser.close()
 
-console.log(`wrote ${written.length} images to ${OUT_DIR} and docs/hero.png`)
+console.log(`wrote ${written.length} images to ${OUT_DIR} and docs/`)
