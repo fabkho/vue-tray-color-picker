@@ -179,96 +179,100 @@ const written = []
 const inline = name =>
   `data:image/png;base64,${readFileSync(join(OUT_DIR, `${name}.png`)).toString('base64')}`
 
+const GRADIENT = `data:image/png;base64,${readFileSync(join('docs', 'assets', 'gradient.png')).toString('base64')}`
+
 const CHROME = `
   * { box-sizing: border-box; margin: 0; }
   body {
     display: grid; place-items: center;
     font: 400 15px/1.4 -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
     color: #1d1d1f;
-    background:
-      radial-gradient(120% 90% at 50% -20%, #fff 0%, rgb(255 255 255 / 0%) 60%),
-      linear-gradient(168deg, #f5f5f7 0%, #ebecf0 100%);
+    overflow: hidden;
+  }
+  /* The ground goes on its own layer so it can be positioned and flipped
+     independently of the composition sitting on it. */
+  .ground {
+    position: fixed; inset: 0; z-index: -1;
+    background-image: url("${GRADIENT}");
+    background-size: cover;
   }
   img {
     display: block;
     filter:
-      drop-shadow(0 2px 4px rgb(0 0 0 / 6%))
-      drop-shadow(0 14px 30px rgb(0 0 0 / 10%))
-      drop-shadow(0 40px 70px rgb(0 0 0 / 8%));
+      drop-shadow(0 2px 4px rgb(0 0 0 / 8%))
+      drop-shadow(0 16px 34px rgb(0 0 0 / 14%))
+      drop-shadow(0 46px 80px rgb(0 0 0 / 12%));
   }
-  figure { display: grid; gap: 22px; justify-items: center; }
+  .stage { display: flex; align-items: center; gap: 92px; }
   figcaption { font-size: 15px; letter-spacing: -0.01em; color: #6e6e73; text-align: center; }
   figcaption b { display: block; font-weight: 590; color: #1d1d1f; letter-spacing: -0.015em; }
 `
 
+const duo = (tray = '03-hover', surface = '05-surface') => `
+  <div class="stage">
+    <img src="${inline(tray)}" width="660">
+    <img src="${inline(surface)}" width="360">
+  </div>`
+
 const HEROES = [
   {
-    name: 'hero-1-trio',
-    size: { width: 1600, height: 620 },
-    css: `.stage { display: flex; align-items: flex-end; gap: 64px; }`,
-    body: `<div class="stage">
-      <figure><img src="${inline('01-closed')}" width="380">
-        <figcaption><b>In a form</b>One control among others</figcaption></figure>
-      <figure><img src="${inline('03-hover')}" width="470">
-        <figcaption><b>The tray</b>Presets, one tap away</figcaption></figure>
-      <figure><img src="${inline('05-surface')}" width="300">
-        <figcaption><b>The picker</b>Hue, shades, greys, hex</figcaption></figure>
-    </div>`,
-  },
-  {
-    name: 'hero-2-duo',
+    /* Sitting in the pale lower half, where a light interface belongs. */
+    name: 'hero-a-pale',
     size: { width: 1500, height: 620 },
-    css: `.stage { display: flex; align-items: center; gap: 96px; }`,
-    body: `<div class="stage">
-      <img src="${inline('03-hover')}" width="660">
-      <img src="${inline('05-surface')}" width="360">
-    </div>`,
+    css: `.ground { background-position: center 78%; }`,
+    body: `<div class="ground"></div>${duo()}`,
   },
   {
-    name: 'hero-3-layered',
-    size: { width: 1500, height: 700 },
-    /* Overlapped and scaled rather than lined up: depth does the work captions
-       would otherwise have to. */
-    css: `.stage { position: relative; width: 1180px; height: 520px; }
-      .stage img { position: absolute; }
-      .back  { left: 0;    top: 96px;  width: 400px; opacity: .96; }
-      .mid   { left: 250px; top: 176px; width: 560px; }
-      .front { right: 40px; top: 0;    width: 340px; }`,
-    body: `<div class="stage">
-      <img class="back" src="${inline('01-closed')}">
-      <img class="mid" src="${inline('03-hover')}">
-      <img class="front" src="${inline('05-surface')}">
-    </div>`,
-  },
-  {
-    name: 'hero-4-spotlight',
+    /* The whole sweep, dark above and pale below, with each panel placed on the
+       scheme it was drawn for. */
+    name: 'hero-b-both',
     size: { width: 1500, height: 760 },
-    css: `.stage { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-        gap: 56px; }
-      .side { display: grid; gap: 40px; justify-items: center; }
-      .side img { width: 330px; }
-      .hero-shot { width: 400px; }`,
-    body: `<div class="stage">
-      <div class="side"><img src="${inline('01-closed')}"></div>
-      <img class="hero-shot" src="${inline('05-surface')}">
-      <div class="side"><img src="${inline('03-hover')}"></div>
-    </div>`,
+    css: `.ground { background-position: center 42%; }
+      .stage { align-items: stretch; gap: 80px; }
+      .col { display: grid; align-content: center; }
+      .col--top { padding-bottom: 220px; }
+      .col--bottom { padding-top: 220px; }`,
+    body: `<div class="ground"></div>
+      <div class="stage">
+        <div class="col col--bottom"><img src="${inline('03-hover')}" width="620"></div>
+        <div class="col col--top"><img src="${inline('09-surface-dark')}" width="330"></div>
+      </div>`,
   },
   {
-    name: 'hero-5-schemes',
+    /* Flipped, so the light falls from below and the dark sits under the
+       panels rather than over them. */
+    name: 'hero-c-inverted',
     size: { width: 1500, height: 620 },
-    /* A ground that is light on one side and dark on the other, so each shot
-       sits on the scheme it belongs to instead of one of them looking wrong. */
-    css: `body { background: linear-gradient(100deg, #f5f5f7 0%, #eceef2 46%, #1c1c1e 54%, #101012 100%); }
-      .stage { display: flex; align-items: center; gap: 110px; }
-      figcaption { color: #6e6e73; }
-      .dark figcaption, .dark figcaption b { color: #f5f5f7; }`,
-    body: `<div class="stage">
-      <figure><img src="${inline('03-hover')}" width="470">
-        <figcaption><b>Light</b>Follows the host's colour-scheme</figcaption></figure>
-      <figure class="dark"><img src="${inline('09-surface-dark')}" width="300">
-        <figcaption><b>Dark</b>No class convention to adopt</figcaption></figure>
-    </div>`,
+    css: `.ground { transform: rotate(180deg); background-position: center 62%; }`,
+    body: `<div class="ground"></div>${duo()}`,
+  },
+  {
+    /* A frosted plate under the pair, so they read as one object on the ground
+       instead of two cut-outs floating on it. */
+    name: 'hero-d-plate',
+    size: { width: 1560, height: 660 },
+    css: `.ground { background-position: center 74%; }
+      .plate {
+        padding: 64px 88px;
+        border-radius: 34px;
+        background: rgb(255 255 255 / 42%);
+        backdrop-filter: blur(28px) saturate(140%);
+        box-shadow:
+          inset 0 0 0 1px rgb(255 255 255 / 55%),
+          0 30px 70px rgb(0 0 0 / 12%);
+      }`,
+    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
+  },
+  {
+    /* Dark panels in the dark half. The drop shadow does nothing here, so the
+       separation has to come from the panels' own edges. */
+    name: 'hero-e-dark',
+    size: { width: 1500, height: 620 },
+    css: `.ground { background-position: center 12%; }
+      img { filter:
+        drop-shadow(0 2px 6px rgb(0 0 0 / 30%))
+        drop-shadow(0 24px 50px rgb(0 0 0 / 34%)); }`,
+    body: `<div class="ground"></div>${duo('08-tray-dark', '09-surface-dark')}`,
   },
 ]
 

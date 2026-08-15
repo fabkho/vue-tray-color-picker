@@ -22,10 +22,14 @@ const brand = ref<string | null>('#8e5dca')
 
       <div class="row">
         <span class="row__label">Accent</span>
+        <!-- Opens beside its own row rather than below it. Bottom placement
+             drops the tray onto the next row down, where it reads as belonging
+             to that control instead of this one. -->
         <ColorPicker
           v-model="accent"
           range="full"
           clearable
+          placement="right-start"
           default-color="#8a8a8f"
           recent-key="demo:accent"
         />
