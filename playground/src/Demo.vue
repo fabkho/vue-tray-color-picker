@@ -38,7 +38,7 @@ const color = ref<string | null>('#1bc98e')
  * rather than an upscale.
  */
 html {
-  font-size: clamp(20px, 1.75vw, 42px);
+  font-size: clamp(20px, 2vw, 48px);
 }
 </style>
 
@@ -56,8 +56,8 @@ html {
 .card {
   display: grid;
   gap: 1rem;
-  width: 22rem;
-  padding: 1.75rem;
+  width: 20rem;
+  padding: 1.5rem;
   border: 1px solid light-dark(rgb(0 0 0 / 8%), rgb(255 255 255 / 10%));
   border-radius: 1rem;
   background: light-dark(#fff, #1e1e21);
