@@ -133,6 +133,7 @@ Every visual value resolves through three tiers, first match wins:
 | `--vtcp-glass-border` | `light-dark(rgb(210 214 222 / 40%), rgb(255 255 255 / 8%))` |
 | `--vtcp-glass-shadow` | a soft ambient shadow |
 | `--vtcp-burst-step` | `-3.25rem` — how far the swatches fly in from |
+| `--vtcp-thumb-size` | `1.375rem` — the band's lens |
 
 The tray is a translucent pill with a backdrop blur, and its swatches burst in
 staggered from the trigger. Both are the point rather than decoration, but

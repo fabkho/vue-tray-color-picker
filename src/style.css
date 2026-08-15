@@ -58,6 +58,9 @@
   /* How far the items fly in from. */
   --_burst-step: var(--vtcp-burst-step, -3.25rem);
 
+  /* The band's lens. Larger than the track so it reads as sitting on top. */
+  --_thumb-size: var(--vtcp-thumb-size, 1.375rem);
+
   box-sizing: border-box;
   color: var(--_text);
   font-family: inherit;
@@ -142,6 +145,13 @@
   display: flex;
   align-items: center;
   gap: var(--_tray-gap);
+}
+
+/* Held only while the burst runs. The items begin translated well left of the
+   pill, so without this they are a row of specks sitting outside it; but the
+   hover lift rises above the pill, so it cannot stay on afterwards. */
+.vtcp-tray--bursting {
+  overflow: hidden;
 }
 
 /* ─── Burst ───────────────────────────────────────────────────────────────── */
@@ -320,6 +330,8 @@
 .vtcp-band {
   width: 100%;
   height: 0.75rem;
+  /* The lens overhangs the track; without this the UA clips it to the band. */
+  overflow: visible;
   appearance: none;
   border-radius: 999px;
   background: linear-gradient(to right, var(--from), var(--to));
@@ -340,23 +352,52 @@
   opacity: 0.5;
 }
 
+/**
+ * A lens, not a ring. The centre stays clear so the band reads through it — the
+ * thumb shows you the colour it is sitting on rather than covering it — and the
+ * glass is built from a bright rim, a specular highlight up and left, and a
+ * grounding shadow below. `backdrop-filter` is deliberately absent: blurring the
+ * band under a magnifier is the opposite of the effect.
+ */
 .vtcp-band::-webkit-slider-thumb {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: var(--_thumb-size);
+  height: var(--_thumb-size);
   appearance: none;
-  border: 2px solid var(--_surface);
   border-radius: 999px;
-  background: transparent;
-  box-shadow: var(--_shadow);
+  border: 1.5px solid rgb(255 255 255 / 90%);
+  background:
+    radial-gradient(circle at 34% 26%, rgb(255 255 255 / 78%), rgb(255 255 255 / 10%) 44%, transparent 62%),
+    radial-gradient(circle at 50% 118%, rgb(255 255 255 / 30%), transparent 52%);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 30%),
+    0 4px 10px rgb(0 0 0 / 16%),
+    inset 0 0 0 1px rgb(255 255 255 / 40%),
+    inset 0 -2px 5px rgb(0 0 0 / 14%);
+  cursor: grab;
 }
 
 .vtcp-band::-moz-range-thumb {
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 2px solid var(--_surface);
+  width: var(--_thumb-size);
+  height: var(--_thumb-size);
   border-radius: 999px;
-  background: transparent;
-  box-shadow: var(--_shadow);
+  border: 1.5px solid rgb(255 255 255 / 90%);
+  background:
+    radial-gradient(circle at 34% 26%, rgb(255 255 255 / 78%), rgb(255 255 255 / 10%) 44%, transparent 62%),
+    radial-gradient(circle at 50% 118%, rgb(255 255 255 / 30%), transparent 52%);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 30%),
+    0 4px 10px rgb(0 0 0 / 16%),
+    inset 0 0 0 1px rgb(255 255 255 / 40%),
+    inset 0 -2px 5px rgb(0 0 0 / 14%);
+  cursor: grab;
+}
+
+.vtcp-band:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+
+.vtcp-band:active::-moz-range-thumb {
+  cursor: grabbing;
 }
 
 .vtcp-shades {

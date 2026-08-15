@@ -296,6 +296,54 @@ describe('ColorPicker — the burst', () => {
   })
 })
 
+describe('ColorPicker — the burst does not spill', () => {
+  const tray = () => document.querySelector<HTMLElement>('.vtcp-tray')!
+
+  const burstFinished = () => Promise.all(
+    tray().getAnimations({ subtree: true }).map(animation => animation.finished),
+  )
+
+  it('clips the pill while the items are still flying in', async () => {
+    await openTray({ modelValue: null, clearable: true })
+    // The last item starts several centimetres left of the pill; unclipped it
+    // is a row of specks sitting outside it.
+    expect(getComputedStyle(tray()).overflow).toBe('hidden')
+  })
+
+  it('releases the clip once they land, so the hover lift can rise', async () => {
+    await openTray({ modelValue: null, clearable: true })
+    await burstFinished()
+    await settle()
+    expect(getComputedStyle(tray()).overflow).not.toBe('hidden')
+  })
+
+  it('keeps no item outside the pill once settled', async () => {
+    await openTray({ modelValue: null, clearable: true })
+    await burstFinished()
+    await settle()
+
+    const pill = tray().getBoundingClientRect()
+    for (const item of document.querySelectorAll<HTMLElement>('.vtcp-tray__item')) {
+      const box = item.getBoundingClientRect()
+      expect(box.left).toBeGreaterThanOrEqual(pill.left - 1)
+      expect(box.right).toBeLessThanOrEqual(pill.right + 1)
+    }
+  })
+
+  it('clips again on the next open', async () => {
+    await openTray({ modelValue: null })
+    await burstFinished()
+    await settle()
+    expect(getComputedStyle(tray()).overflow).not.toBe('hidden')
+
+    trigger().click()
+    await settle()
+    trigger().click()
+    await settle()
+    expect(getComputedStyle(tray()).overflow).toBe('hidden')
+  })
+})
+
 describe('ColorPicker — the custom swatch', () => {
   it('sits outside the group that lifts on hover', async () => {
     // The lift is scoped to .vtcp-tray__group. The custom trigger opens a panel;

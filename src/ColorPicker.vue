@@ -138,6 +138,36 @@ const swatchOffset = computed(() => (clearable ? 1 : 0))
 const customIndex = computed(() => swatchOffset.value + swatches.value.length)
 const burstTotal = computed(() => customIndex.value + 1)
 
+/**
+ * The items start translated left of the pill — the last one by several
+ * centimetres — so without clipping they are visible as a row of specks before
+ * they fly in. The clip cannot simply stay on: the hover lift rises above the
+ * pill and would be cut off. So it is applied for the duration of the burst and
+ * released the moment the last item lands.
+ */
+const bursting = ref(false)
+let landed = 0
+let burstFallback: ReturnType<typeof setTimeout> | undefined
+
+function onBurstEnd(event: AnimationEvent) {
+  if (event.animationName !== 'vtcp-burst-in') return
+  landed += 1
+  if (landed >= burstTotal.value) bursting.value = false
+}
+
+watch(trayOpen, (open) => {
+  clearTimeout(burstFallback)
+  if (!open) {
+    bursting.value = false
+    return
+  }
+  landed = 0
+  bursting.value = true
+  // If the animation never runs — disabled by a host stylesheet, say — no
+  // animationend arrives and the clip would strand the lift forever.
+  burstFallback = setTimeout(() => { bursting.value = false }, 1200)
+})
+
 // ─── Surface ───
 
 function applyCustom(color: string) {
@@ -191,7 +221,9 @@ watch(surfaceOpen, (open) => {
       <div
         v-if="trayOpen"
         class="vtcp-tray"
+        :class="{ 'vtcp-tray--bursting': bursting }"
         :style="{ '--burst-total': burstTotal }"
+        @animationend="onBurstEnd"
       >
         <span
           v-if="clearable"
