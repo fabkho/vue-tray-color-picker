@@ -243,6 +243,85 @@ describe('ColorPicker — recents', () => {
   })
 })
 
+describe('ColorPicker — the burst', () => {
+  const items = () => Array.from(document.querySelectorAll<HTMLElement>('.vtcp-tray__item'))
+
+  it('numbers the items in visual order, clear first and custom last', async () => {
+    await openTray({ modelValue: null, clearable: true })
+    const indices = items().map(el => Number(el.style.getPropertyValue('--burst-i')))
+    expect(indices).toEqual([...indices].sort((a, b) => a - b))
+    expect(indices[0]).toBe(0)
+    expect(indices.at(-1)).toBe(DEFAULT_SUGGESTIONS.length + 1)
+  })
+
+  it('starts at zero without the clear swatch', async () => {
+    await openTray({ modelValue: null })
+    expect(items()[0]!.style.getPropertyValue('--burst-i')).toBe('0')
+  })
+
+  it('tells every item how long the cascade is, so the stagger can tighten', async () => {
+    await openTray({ modelValue: null, clearable: true })
+    const total = getComputedStyle(items()[0]!).getPropertyValue('--burst-total').trim()
+    expect(Number(total)).toBe(DEFAULT_SUGGESTIONS.length + 2)
+  })
+
+  it('actually animates on open', async () => {
+    await openTray({ modelValue: null })
+    const first = items()[0]!
+    expect(getComputedStyle(first).animationName).toBe('vtcp-burst-in')
+    expect(getComputedStyle(first).animationFillMode).toBe('both')
+  })
+
+  it('staggers later items behind earlier ones', async () => {
+    await openTray({ modelValue: null })
+    const delays = items().map(el => Number.parseFloat(getComputedStyle(el).animationDelay))
+    expect(delays[0]).toBe(0)
+    expect(delays.at(-1)!).toBeGreaterThan(delays[0]!)
+  })
+
+  it('replays the next time the tray opens', async () => {
+    // The content mounts fresh per open; a persistent panel would run the
+    // animation once and never again.
+    const w = await openTray({ modelValue: null })
+    expect(items().length).toBeGreaterThan(0)
+
+    trigger().click()
+    await settle()
+    expect(items()).toHaveLength(0)
+
+    trigger().click()
+    await settle()
+    expect(getComputedStyle(items()[0]!).animationName).toBe('vtcp-burst-in')
+    expect(w).toBeTruthy()
+  })
+})
+
+describe('ColorPicker — the custom swatch', () => {
+  it('sits outside the group that lifts on hover', async () => {
+    // The lift is scoped to .vtcp-tray__group. The custom trigger opens a panel;
+    // it is not one of the colours being chosen, so it must not lift.
+    await openTray({ modelValue: null })
+    expect(customSwatch().closest('.vtcp-tray__group')).toBeNull()
+  })
+
+  it('is a filled well rather than a transparent hole', async () => {
+    await openTray({ modelValue: null })
+    const background = getComputedStyle(customSwatch()).backgroundColor
+    expect(background).not.toBe('rgba(0, 0, 0, 0)')
+    expect(background).not.toBe('transparent')
+  })
+
+  it('carries a dashed border to read as an affordance', async () => {
+    await openTray({ modelValue: null })
+    expect(getComputedStyle(customSwatch()).borderStyle).toBe('dashed')
+  })
+
+  it('renders an icon rather than a text plus', async () => {
+    await openTray({ modelValue: null })
+    expect(customSwatch().querySelector('svg')).not.toBeNull()
+  })
+})
+
 describe('ColorPicker — nested surface', () => {
   it('opens the surface without closing the tray', async () => {
     await openTray({ modelValue: null })

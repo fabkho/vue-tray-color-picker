@@ -103,7 +103,10 @@ function clearColor() {
   trayOpen.value = false
 }
 
-const swatchRefs = useTemplateRef('swatchRefs')
+/* Annotated rather than inferred: the ref sits inside the v-for element (the
+   burst wrapper) rather than on it, which is where Volar stops inferring the
+   array. */
+const swatchRefs = useTemplateRef<HTMLButtonElement[]>('swatchRefs')
 
 const selectedIndex = computed(() =>
   swatches.value.findIndex(swatch => isSelected(swatch.value)),
@@ -125,6 +128,15 @@ function moveSelection(offset: number) {
   if (total === 0) return
   selectAt((activeIndex.value + offset + total) % total)
 }
+
+// ─── Burst ───
+// Positions are derived, not assigned by walking the DOM after mount: the order
+// is already known here, and reordering can never leave a stale index behind.
+
+const clearIndex = computed(() => (clearable ? 0 : -1))
+const swatchOffset = computed(() => (clearable ? 1 : 0))
+const customIndex = computed(() => swatchOffset.value + swatches.value.length)
+const burstTotal = computed(() => customIndex.value + 1)
 
 // ─── Surface ───
 
@@ -174,73 +186,105 @@ watch(surfaceOpen, (open) => {
     </template>
 
     <template #default>
-      <div class="vtcp-tray">
-        <button
+      <!-- Mounted fresh per open, so the burst plays on insertion rather than
+           needing to be restarted by hand. -->
+      <div
+        v-if="trayOpen"
+        class="vtcp-tray"
+        :style="{ '--burst-total': burstTotal }"
+      >
+        <span
           v-if="clearable"
-          type="button"
-          class="vtcp-swatch vtcp-swatch--clear"
-          :style="{ '--color': defaultColor }"
-          :aria-label="t.useDefault"
-          :aria-pressed="!modelValue"
-          @click="clearColor"
-        />
+          class="vtcp-tray__item"
+          :style="{ '--burst-i': clearIndex }"
+        >
+          <button
+            type="button"
+            class="vtcp-swatch vtcp-swatch--clear"
+            :style="{ '--color': defaultColor }"
+            :aria-label="t.useDefault"
+            :aria-pressed="!modelValue"
+            @click="clearColor"
+          />
+        </span>
 
         <div
           class="vtcp-tray__group"
           role="radiogroup"
           :aria-label="t.selectColor"
         >
-          <button
+          <span
             v-for="(swatch, index) in swatches"
-            ref="swatchRefs"
             :key="swatch.value"
-            type="button"
-            role="radio"
-            class="vtcp-swatch"
-            :style="{ '--color': swatch.value }"
-            :aria-label="swatch.label"
-            :aria-checked="isSelected(swatch.value)"
-            :tabindex="index === activeIndex ? 0 : -1"
-            @click="selectSwatch(swatch.value)"
-            @keydown.left.prevent="moveSelection(-1)"
-            @keydown.up.prevent="moveSelection(-1)"
-            @keydown.right.prevent="moveSelection(1)"
-            @keydown.down.prevent="moveSelection(1)"
-            @keydown.home.prevent="selectAt(0)"
-            @keydown.end.prevent="selectAt(swatches.length - 1)"
-          />
+            class="vtcp-tray__item"
+            :style="{ '--burst-i': swatchOffset + index }"
+          >
+            <button
+              ref="swatchRefs"
+              type="button"
+              role="radio"
+              class="vtcp-swatch"
+              :style="{ '--color': swatch.value }"
+              :aria-label="swatch.label"
+              :aria-checked="isSelected(swatch.value)"
+              :tabindex="index === activeIndex ? 0 : -1"
+              @click="selectSwatch(swatch.value)"
+              @keydown.left.prevent="moveSelection(-1)"
+              @keydown.up.prevent="moveSelection(-1)"
+              @keydown.right.prevent="moveSelection(1)"
+              @keydown.down.prevent="moveSelection(1)"
+              @keydown.home.prevent="selectAt(0)"
+              @keydown.end.prevent="selectAt(swatches.length - 1)"
+            />
+          </span>
         </div>
 
         <!-- Nested layer, so the tray stays open while the surface is in use. -->
-        <ColorPopover
-          v-model:open="surfaceOpen"
-          placement="right-start"
+        <span
+          class="vtcp-tray__item"
+          :style="{ '--burst-i': customIndex }"
         >
-          <template #trigger="{ toggle, triggerAttrs }">
-            <button
-              type="button"
-              class="vtcp-swatch vtcp-swatch--custom"
-              :aria-label="t.custom"
-              v-bind="triggerAttrs"
-              @click="toggle"
-            >
-              <slot name="custom-icon">
-                +
-              </slot>
-            </button>
-          </template>
+          <ColorPopover
+            v-model:open="surfaceOpen"
+            placement="right-start"
+          >
+            <template #trigger="{ toggle, triggerAttrs }">
+              <button
+                type="button"
+                class="vtcp-swatch vtcp-swatch--custom"
+                :aria-label="t.custom"
+                v-bind="triggerAttrs"
+                @click="toggle"
+              >
+                <slot name="custom-icon">
+                  <svg
+                    viewBox="0 0 16 16"
+                    width="12"
+                    height="12"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 3.5v9M3.5 8h9" />
+                  </svg>
+                </slot>
+              </button>
+            </template>
 
-          <template #default>
-            <ColorSurface
-              :model-value="seed"
-              :range="range"
-              :commit="commit"
-              :labels="labels"
-              @update:model-value="applyCustom"
-              @close="closeSurface"
-            />
-          </template>
-        </ColorPopover>
+            <template #default>
+              <ColorSurface
+                :model-value="seed"
+                :range="range"
+                :commit="commit"
+                :labels="labels"
+                @update:model-value="applyCustom"
+                @close="closeSurface"
+              />
+            </template>
+          </ColorPopover>
+        </span>
       </div>
     </template>
   </ColorPopover>

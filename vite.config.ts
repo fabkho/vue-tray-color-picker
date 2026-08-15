@@ -1,7 +1,9 @@
 import { fileURLToPath } from 'node:url'
+import { playwright } from '@vitest/browser-playwright'
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
+// Vitest 4 no longer augments Vite's own config type, so `test` needs this one.
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [
@@ -43,7 +45,7 @@ export default defineConfig({
           setupFiles: ['tests/browser/setup.ts'],
           browser: {
             enabled: true,
-            provider: 'playwright',
+            provider: playwright(),
             headless: true,
             instances: [{ browser: 'chromium' }],
           },

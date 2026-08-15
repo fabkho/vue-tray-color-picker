@@ -1,4 +1,4 @@
-import { userEvent } from '@vitest/browser/context'
+import { userEvent } from 'vitest/browser'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'

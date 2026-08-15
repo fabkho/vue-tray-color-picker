@@ -125,6 +125,19 @@ Every visual value resolves through three tiers, first match wins:
 | `--vtcp-ease` | a sampled spring, one soft overshoot |
 | `--vtcp-swatch-size` | `2.25rem` |
 | `--vtcp-gap` | `0.625rem` |
+| `--vtcp-surface-muted` | `light-dark(#f4f4f6, #2a2a2e)` |
+| `--vtcp-primary` / `--vtcp-primary-text` | `#2b6af8` / `#fff` |
+| `--vtcp-tray-gap` / `--vtcp-tray-padding` | `0.5rem` / `0.375rem` |
+| `--vtcp-glass-blur` | `20px` — set to `0` for a flat pill |
+| `--vtcp-glass-surface` | `light-dark(rgb(255 255 255 / 92%), rgb(30 30 30 / 92%))` |
+| `--vtcp-glass-border` | `light-dark(rgb(210 214 222 / 40%), rgb(255 255 255 / 8%))` |
+| `--vtcp-glass-shadow` | a soft ambient shadow |
+| `--vtcp-burst-step` | `-3.25rem` — how far the swatches fly in from |
+
+The tray is a translucent pill with a backdrop blur, and its swatches burst in
+staggered from the trigger. Both are the point rather than decoration, but
+`--vtcp-glass-blur: 0` gives a flat pill if the blur is too expensive or reads
+badly over a busy background, and `prefers-reduced-motion` removes the burst.
 
 **Dark mode** is `light-dark()` against the inherited `color-scheme`. There is no
 class or data-attribute convention to adopt — but you do need to declare

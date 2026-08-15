@@ -142,6 +142,31 @@ function save() {
 
 <template>
   <div class="vtcp vtcp-surface">
+    <header class="vtcp-surface__header">
+      <span class="vtcp-surface__title">{{ t.title }}</span>
+      <button
+        type="button"
+        class="vtcp-surface__close"
+        :aria-label="t.close"
+        @click="emit('close')"
+      >
+        <slot name="close-icon">
+          <svg
+            viewBox="0 0 16 16"
+            width="11"
+            height="11"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </slot>
+      </button>
+    </header>
+
     <div class="vtcp-surface__head">
       <span
         class="vtcp-surface__preview"

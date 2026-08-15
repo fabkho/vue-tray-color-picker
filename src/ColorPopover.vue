@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { autoUpdate, computePosition, flip, offset, shift, type Placement } from '@floating-ui/dom'
-import { onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
 
 /**
  * The default floating layer, and the designated swap-out point: a consumer with
@@ -94,8 +94,11 @@ watch(open, async (isOpen) => {
 
   if (isOpen) {
     panel.showPopover()
+    // Panel content is often mounted by the same state change, so wait for it —
+    // otherwise there is nothing to focus yet and the keyboard user is left
+    // behind the panel.
+    await nextTick()
     startPositioning()
-    // Focus the first control so the keyboard user lands inside, not behind.
     focusables(panel)[0]?.focus()
     return
   }
