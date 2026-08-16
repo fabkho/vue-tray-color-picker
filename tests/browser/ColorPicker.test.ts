@@ -332,6 +332,30 @@ describe('ColorPicker — the burst', () => {
   })
 })
 
+describe('ColorPicker — attribute fallthrough', () => {
+  it('takes a class, so a consumer can scope styles or tokens to one picker', async () => {
+    // A two-root component is a fragment, and Vue drops fallthrough class and
+    // style onto a fragment without applying them anywhere. Silently: the
+    // consumer's rule simply never matches.
+    wrapper = mount(ColorPicker, {
+      props: { modelValue: '#2b6af8' },
+      attrs: { class: 'consumer-scope' },
+      attachTo: document.body,
+    })
+    expect(document.querySelector('.consumer-scope')).not.toBeNull()
+  })
+
+  it('takes a style, which is how a per-instance token override is delivered', async () => {
+    wrapper = mount(ColorPicker, {
+      props: { modelValue: null, defaultColor: 'var(--brand)' },
+      attrs: { style: '--brand: #00dbcb' },
+      attachTo: document.body,
+    })
+    const anchor = document.querySelector<HTMLElement>('.vtcp-popover__anchor')!
+    expect(getComputedStyle(anchor).getPropertyValue('--brand').trim()).toBe('#00dbcb')
+  })
+})
+
 describe('ColorPicker — the burst does not spill', () => {
   const tray = () => document.querySelector<HTMLElement>('.vtcp-tray')!
 

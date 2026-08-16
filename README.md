@@ -88,10 +88,10 @@ carries a wash of the colour it is sitting on.
 
 ![Close on the hue and saturation bands and their frosted thumbs](./docs/shots/06-bands.png)
 
-## Bringing your own floating layer
+## Using your own container
 
-`ColorPopover` is the default and the designated swap-out point. `ColorSurface`
-works standalone — render it in your own dropdown, a modal, or inline:
+`ColorSurface` renders anywhere — a dropdown you already have, a modal, or
+inline:
 
 ```vue
 <MyDropdown>
@@ -99,7 +99,8 @@ works standalone — render it in your own dropdown, a modal, or inline:
 </MyDropdown>
 ```
 
-Nothing else in the package depends on `ColorPopover`.
+A floating layer ships with the package so `ColorPicker` works out of the box,
+but nothing in the picker depends on it and most projects will want their own.
 
 ## Theming
 
@@ -230,8 +231,10 @@ Both are available on `ColorPicker` and on `ColorSurface`.
 
 ### `<ColorPopover>`
 
-The floating layer: `open` (v-model), `placement`, `gap`, `disabled`. Slots
-`#trigger="{ open, toggle, triggerAttrs }"` and `#default="{ close }"`.
+The bundled floating layer, so the picker works without one of your own:
+`open` (v-model), `placement`, `gap`, `disabled`. Slots
+`#trigger="{ open, toggle, triggerAttrs }"` and `#default="{ close }"`. Swap it
+for your own dropdown and nothing else changes.
 
 ### Colour maths
 
@@ -242,7 +245,7 @@ exported, usable without the components.
 ## Accessibility
 
 Both swatch groups are radio groups: one tab stop, arrows move and select, Home
-and End reach the ends. The floating layer traps Tab, closes on Escape and on an
+and End reach the ends. The bundled layer traps Tab, closes on Escape and on an
 outside click, and returns focus to the trigger. Every swatch has a name — a
 preset's label, or its hex for a mixed colour.
 

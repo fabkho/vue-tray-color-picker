@@ -1,41 +1,42 @@
+/**
+ * Light only. The page is a shop window, and the frosted sheets are drawn for a
+ * pale ground — following the visitor's system into dark mode would put a light
+ * component on a dark page and misrepresent both.
+ */
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
   line-height: 1.5;
+  color: #1c2b36;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
+  min-height: 100vh;
   margin: 0;
-  padding: 2rem;
-  background: light-dark(#fbfbfc, #17171a);
-  color: light-dark(#18181b, #e4e4e7);
+  padding: 4rem 2rem 6rem;
+  background: #eef2f4;
 }
 
-h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.25rem;
-}
-
-.subtitle {
-  margin: 0 0 2rem;
-  color: light-dark(#71717a, #a1a1aa);
-  font-size: 0.875rem;
-}
-
-.case {
-  max-width: 46rem;
-  padding: 1.25rem 0;
-  border-top: 1px solid light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 12%));
-}
-
-.case__title {
-  margin: 0 0 0.25rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.case__note {
-  margin: 0 0 1rem;
-  color: light-dark(#71717a, #a1a1aa);
-  font-size: 0.8125rem;
+/* The ground sits on its own fixed layer so it stays put while the page scrolls
+   and the frosted cards have something to blur. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  /* A white scrim over the ground. Undiluted, its dark end lands under whichever
+     cards happen to scroll into it and takes the body text with it; at this
+     strength the gradient still reads as a tint and everything stays legible
+     wherever it stops. */
+  background-image:
+    linear-gradient(rgb(255 255 255 / 62%), rgb(255 255 255 / 62%)),
+    url("/ground.jpg");
+  background-size: cover;
+  background-position: center;
 }

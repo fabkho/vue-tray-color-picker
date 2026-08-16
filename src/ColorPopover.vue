@@ -194,6 +194,15 @@ onBeforeUnmount(stopPositioning)
 </script>
 
 <template>
+  <!--
+    One root, with the panel nested inside the anchor rather than beside it. As
+    two roots this is a fragment, and Vue silently drops fallthrough class and
+    style onto a fragment — so `<ColorPicker class="...">` did nothing at all,
+    which is a surprising way for a component to behave.
+
+    Nesting costs nothing: the panel is promoted to the top layer, so where it
+    sits in the tree does not affect how it paints.
+  -->
   <span
     ref="triggerEl"
     class="vtcp-popover__anchor"
@@ -204,18 +213,18 @@ onBeforeUnmount(stopPositioning)
       :toggle="toggle"
       :trigger-attrs="triggerAttrs"
     />
-  </span>
 
-  <div
-    :id="panelId"
-    ref="panelEl"
-    popover="auto"
-    class="vtcp vtcp-popover"
-    role="dialog"
-    :aria-label="ariaLabel"
-    @toggle="onToggleEvent"
-    @keydown="onKeydown"
-  >
-    <slot :close="close" />
-  </div>
+    <div
+      :id="panelId"
+      ref="panelEl"
+      popover="auto"
+      class="vtcp vtcp-popover"
+      role="dialog"
+      :aria-label="ariaLabel"
+      @toggle="onToggleEvent"
+      @keydown="onKeydown"
+    >
+      <slot :close="close" />
+    </div>
+  </span>
 </template>
