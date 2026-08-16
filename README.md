@@ -9,7 +9,7 @@ picker where every reachable colour is one worth shipping.
 
 **[Try it →](https://fabkho.github.io/vue-tray-color-picker/)**
 
-![The tray open beside a form row, a swatch lifted under the cursor](./docs/shots/03-hover.png)
+![Three states side by side: a resting swatch in a form row, the tray open with a swatch lifted, and the full picker](./docs/hero.png)
 
 ## Install
 
