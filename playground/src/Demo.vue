@@ -120,6 +120,7 @@ const brand = ref<string | null>('#8e5dca')
         <ColorPicker
           v-model="brand"
           range="full"
+          placement="bottom-end"
           recent-key="demo:brand"
         />
       </div>
@@ -166,6 +167,15 @@ html {
   font-size: clamp(20px, 2vw, 48px);
 }
 
+/* Without this a height is the *content* box, and padding plus border land on
+   top of it — which is why a panel asked for the surface's height came out
+   fifty pixels taller than it. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /**
  * `?bare` drops the stage so screenshots can be taken with a transparent
  * background. The container keeps its own shadow, so it floats on whatever it
@@ -200,7 +210,16 @@ html.bare .stage {
 /* ─── A. Settings ─────────────────────────────────────────────────────────── */
 
 .panel {
+  /**
+   * Height matched to the surface panel — 16rem wide, and this tall once its
+   * bands, shades, field and footer are stacked — so the two sit level in the
+   * hero. In rem, so it holds at any root size rather than only at the one the
+   * shots happen to be taken at.
+   */
+  display: flex;
+  flex-direction: column;
   width: 24rem;
+  height: 17.67rem;
   padding: 1.25rem 1.5rem 0.5rem;
   border-radius: 1rem;
 }
@@ -212,12 +231,18 @@ html.bare .stage {
   letter-spacing: -0.01em;
 }
 
+/* Rows share whatever height is left, so the panel keeps its size whether it
+   holds three colours or five. `min-height: 0` is what lets them: a flex item
+   defaults to refusing to shrink below its content, which would push the panel
+   past the height it was given. */
 .entry {
   display: flex;
+  flex: 1;
+  min-height: 0;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 0.875rem 0;
+  padding: 0.25rem 0;
 }
 
 /* Hairlines between, not around: the panel's own border closes the group. */

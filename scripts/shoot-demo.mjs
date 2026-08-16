@@ -194,6 +194,17 @@ for (const container of ['settings', 'preview', 'strip']) {
 const inline = name =>
   `data:image/png;base64,${readFileSync(join(OUT_DIR, `${name}.png`)).toString('base64')}`
 
+/* Straight out of the IHDR chunk. Both shots have to be drawn at one scale, or
+   the same component appears at two sizes in the same picture — so the widths
+   are derived from the files rather than guessed. */
+function pngSize(name) {
+  const header = readFileSync(join(OUT_DIR, `${name}.png`)).subarray(16, 24)
+  return { width: header.readUInt32BE(0), height: header.readUInt32BE(4) }
+}
+
+const SCALE = 0.44
+const at = name => `width="${Math.round(pngSize(name).width * SCALE)}"`
+
 const GRADIENT = `data:image/png;base64,${readFileSync(join('docs', 'assets', 'gradient.png')).toString('base64')}`
 
 const CHROME = `
@@ -218,7 +229,10 @@ const CHROME = `
       drop-shadow(0 16px 34px rgb(0 0 0 / 14%))
       drop-shadow(0 46px 80px rgb(0 0 0 / 12%));
   }
-  .stage { display: flex; align-items: center; gap: 92px; }
+  /* Aligned at the top: the two panels are the same height, so their tops and
+     bottoms line up and only the tray overhangs — which is what a popover
+     does. */
+  .stage { display: flex; align-items: flex-start; gap: 92px; }
   figcaption { font-size: 15px; letter-spacing: -0.01em; color: #6e6e73; text-align: center; }
   figcaption b { display: block; font-weight: 590; color: #1d1d1f; letter-spacing: -0.015em; }
 `
@@ -259,8 +273,8 @@ const HEROES = ['settings', 'preview', 'strip'].map(container => ({
   css: `${GROUND}${CLEARER}`,
   body: `<div class="ground"></div><div class="plate">
     <div class="stage">
-      <img src="${inline(`c-${container}-tray`)}" width="660">
-      <img src="${inline('05-surface')}" width="360">
+      <img src="${inline(`c-${container}-tray`)}" ${at(`c-${container}-tray`)}>
+      <img src="${inline('05-surface')}" ${at('05-surface')}>
     </div>
   </div>`,
 }))
