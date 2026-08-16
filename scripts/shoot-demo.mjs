@@ -30,7 +30,7 @@ mkdirSync(OUT_DIR, { recursive: true })
 
 const browser = await chromium.launch()
 
-async function session(colorScheme, container = 'settings') {
+async function session(colorScheme) {
   const context = await browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: DPR,
@@ -38,7 +38,7 @@ async function session(colorScheme, container = 'settings') {
     reducedMotion: 'reduce',
   })
   const page = await context.newPage()
-  await page.goto(`${URL}?bare&container=${container}`, { waitUntil: 'networkidle' })
+  await page.goto(`${URL}?bare`, { waitUntil: 'networkidle' })
   await pause(500)
   return { context, page }
 }
@@ -79,7 +79,7 @@ async function shoot(page, name, targets, pad = PAD) {
   return name
 }
 
-const CARD = '.panel, .preview, .strip'
+const CARD = '.panel'
 const TRIGGER = '.vtcp-trigger'
 const TRAY = '.vtcp-tray'
 const SURFACE = '.vtcp-surface'
@@ -112,7 +112,7 @@ async function openSurface(page) {
  */
 async function isolate(page, hidden) {
   await page.evaluate((hide) => {
-    for (const selector of ['.panel', '.preview', '.strip', '.vtcp-tray']) {
+    for (const selector of ['.panel', '.vtcp-tray']) {
       const element = document.querySelector(selector)
       if (element instanceof HTMLElement) element.style.visibility = hide ? 'hidden' : ''
     }
@@ -123,16 +123,6 @@ async function isolate(page, hidden) {
 }
 
 const written = []
-
-// ─── Container candidates ───
-
-for (const container of ['settings', 'preview', 'strip']) {
-  const { context, page } = await session('light', container)
-  written.push(await shoot(page, `c-${container}-closed`, [CARD]))
-  await openTray(page)
-  written.push(await shoot(page, `c-${container}-tray`, [CARD, TRAY]))
-  await context.close()
-}
 
 // ─── Light ───
 
@@ -265,19 +255,20 @@ const CLEARER = plate({
   shadow: '0 30px 70px rgb(0 0 0 / 10%)',
 })
 
-/* One hero per container candidate, all on the same chosen ground and plate, so
-   the only thing changing between them is the thing being compared. */
-const HEROES = ['settings', 'preview', 'strip'].map(container => ({
-  name: `hero-${container}`,
+/* One hero: the two panels side by side on the chosen ground and plate. Both
+   shots are drawn at a single scale so the same component never appears at two
+   sizes in one picture. */
+const HEROES = [{
+  name: 'hero',
   size: { width: 1600, height: 900 },
   css: `${GROUND}${CLEARER}`,
   body: `<div class="ground"></div><div class="plate">
     <div class="stage">
-      <img src="${inline(`c-${container}-tray`)}" ${at(`c-${container}-tray`)}>
+      <img src="${inline('02-tray')}" ${at('02-tray')}>
       <img src="${inline('05-surface')}" ${at('05-surface')}>
     </div>
   </div>`,
-}))
+}]
 
 for (const hero of HEROES) {
   const context = await browser.newContext({

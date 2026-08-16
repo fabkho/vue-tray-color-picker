@@ -87,6 +87,14 @@ What matters here:
   down onto the thing being photographed; `visibility` is the one property a
   descendant can opt back out of.
 - **Shoot with `reducedMotion: 'reduce'`**, so nothing is caught mid-transition.
+- **The demo page needs its own `box-sizing` reset.** Without one a `height` is
+  the content box, and padding plus border land on top — which is how a panel
+  asked for the surface's height came out fifty pixels taller than it.
+- **Panels are matched by construction, not by scaling.** The settings panel is
+  given the surface's height and its rows share what is left (`min-height: 0`,
+  or a flex item refuses to shrink below its content); the hero then draws both
+  shots at one scale taken from their real pixel sizes. Scaling the images to
+  match would show the same component at two sizes in one picture.
 - **`?bare` plus `omitBackground` gives a transparent shot.** The component
   keeps its own shadow and floats on whatever it is placed on, rather than
   arriving with a grey rectangle that reads as a card inside a card.
