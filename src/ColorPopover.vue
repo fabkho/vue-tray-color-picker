@@ -103,7 +103,7 @@ async function syncPopoverState(isOpen: boolean) {
     // behind the panel.
     await nextTick()
     startPositioning()
-    focusables(panel)[0]?.focus()
+    initialFocus(panel)?.focus()
     return
   }
 
@@ -141,9 +141,27 @@ const FOCUSABLE = [
   'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
 ].join(',')
 
+/**
+ * Tab stops, not merely focusable elements. A roving-tabindex radio is still a
+ * `button:not([disabled])`, so the selector alone would hand back every rung of
+ * a group that offers exactly one tab stop — and the Tab-wrap logic would then
+ * pin `first`/`last` to elements Tab can never reach.
+ */
 function focusables(panel: HTMLElement): HTMLElement[] {
   return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE))
     .filter(el => el.offsetParent !== null || el === document.activeElement)
+    .filter(el => el.tabIndex >= 0)
+}
+
+/**
+ * A roving-tabindex group carries its own idea of where the user is: the one
+ * member holding `tabindex="0"`. Landing on the first focusable instead would
+ * drop a keyboard user somewhere the group did not choose, and their first
+ * arrow key would then move from the wrong place.
+ */
+function initialFocus(panel: HTMLElement): HTMLElement | undefined {
+  const items = focusables(panel)
+  return items.find(el => el.getAttribute('tabindex') === '0') ?? items[0]
 }
 
 /**

@@ -171,22 +171,53 @@ describe('resolveAxes', () => {
 describe('the ring invariant', () => {
   /**
    * The shade ring marks the rung whose colour *equals* the draft, compared
-   * exactly. That is only safe if a colour generated from the axes is
-   * byte-identical to the corresponding rung — if the two ever disagreed by a
-   * rounding step, selecting a shade would clear its own ring.
+   * exactly. Adopting a colour sends it through `resolveAxes` first, so the ring
+   * only survives the trip if the axes that come back regenerate the very shade
+   * they were read from — if the two ever disagreed by a rounding step,
+   * selecting a shade would clear its own ring.
+   *
+   * The saturation axis is pinned outside `full`, so vivid is the only level a
+   * resolve there could ever hand back; asking about the others would be asking
+   * about a colour the range cannot express.
    */
-  it('generates a rung identical to the shade at that index', () => {
+  it('lands every generated shade back on its own rung', () => {
     for (const range of RANGES) {
       const steps = lightnessSteps(range)
-      for (let hue = 0; hue < 360; hue += 3) {
-        for (let s = 0; s < SATURATION_STEPS.length; s++) {
+      const saturations = range === 'full'
+        ? SATURATION_STEPS.map((_, index) => index)
+        : [VIVID_SATURATION_INDEX]
+      for (const s of saturations) {
+        for (let hue = 0; hue < 360; hue += 1) {
           const shades = shadesFor(hue, s, range)
           for (let l = 0; l < steps.length; l++) {
-            expect(shades[l], `${range} h${hue} s${s} l${l}`)
-              .toBe(hslToHex(hue, SATURATION_STEPS[s]!, steps[l]!))
+            const shade = shades[l]!
+            const where = `${range} h${hue} s${s} l${l} ${shade}`
+            const axes = resolveAxes(shade, range)
+            expect(axes, where).not.toBeNull()
+            expect(axes!.saturationIndex, where).toBe(s)
+            expect(axes!.lightnessIndex, where).toBe(l)
           }
         }
       }
+    }
+  })
+
+  /**
+   * Hue is the one axis that does not survive intact. Eight bits per channel
+   * cannot hold a degree of hue apart once the channels bunch together, so a
+   * pale or muted rung reads back a degree or four off and regenerates a
+   * neighbouring colour. These are the rungs where that happens; they are the
+   * real, narrow limit of the invariant above, pinned so a widening goes noticed
+   * rather than a shrinking going uncredited.
+   */
+  it('cannot regenerate the handful of rungs where hue rounds away', () => {
+    const drifting: [ColorRange, number, string][] = [
+      ['identity', VIVID_SATURATION_INDEX, '#f1a9a7'],
+      ['full', 1, '#d1a09f'],
+      ['full', 1, '#673532'],
+    ]
+    for (const [range, s, shade] of drifting) {
+      expect(shadesFor(resolveAxes(shade, range)!.hue, s, range), shade).not.toContain(shade)
     }
   })
 

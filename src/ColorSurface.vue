@@ -122,6 +122,16 @@ const selectedShade = computed(() =>
   shades.value.findIndex(shade => shade.toLowerCase() === draft.value.toLowerCase()),
 )
 
+/**
+ * Both bands are ranges over units a screen reader cannot infer: hue would be
+ * read as a bare "210", and saturation as its step index — "1" out of a scale
+ * whose meaning lives in `SATURATION_STEPS`. Say what the number means.
+ */
+const hueText = computed(() => `${hue.value}°`)
+const saturationText = computed(
+  () => `${Math.round((SATURATION_STEPS[saturationIndex.value] ?? 0) * 100)}%`,
+)
+
 /** Endpoints of the saturation band, at the rung currently chosen. */
 const saturationTrack = computed(() => ({
   from: hslToHex(hue.value, SATURATION_STEPS[0]!, lightnessSteps(range)[lightnessIndex.value]!),
@@ -199,6 +209,7 @@ function cancel() {
           max="360"
           :disabled="disabled"
           :aria-label="t.hue"
+          :aria-valuetext="hueText"
           @input="syncFromAxes"
         >
 
@@ -212,6 +223,7 @@ function cancel() {
           :style="{ '--from': saturationTrack.from, '--to': saturationTrack.to }"
           :disabled="disabled"
           :aria-label="t.saturation"
+          :aria-valuetext="saturationText"
           @input="syncFromAxes"
         >
       </div>

@@ -51,6 +51,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "pnpm -C playground dev",
+    "build:playground": "pnpm --filter playground build",
     "demo:shoot": "node scripts/shoot-demo.mjs",
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",

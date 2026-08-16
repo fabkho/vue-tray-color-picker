@@ -193,11 +193,9 @@ describe('commit mode — recents', () => {
     await setBand(hueBand(), '40')
     await setBand(hueBand(), '80')
 
-    document.querySelector<HTMLElement>('.vtcp-surface')!
-      .closest('[popover]')!.dispatchEvent(new Event('nothing'))
-    // Dismiss through the surface's own close path.
     await setBand(hueBand(), '120')
     const stored = () => JSON.parse(localStorage.getItem('pg:commit') ?? '[]') as string[]
+    // A drag that is still under way has no final colour to record yet.
     expect(stored()).toHaveLength(0)
 
     // Closing is the only exit in immediate mode.

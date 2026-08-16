@@ -90,6 +90,37 @@
   }
 }
 
+/* Every one of these is a single-tap control, so there is no double-tap gesture
+   worth waiting 300ms for. Picking a colour is the kind of thing people do
+   several times in a row, and the delay reads as the tray being slow. */
+.vtcp-swatch,
+.vtcp-shade,
+.vtcp-trigger,
+.vtcp-action {
+  touch-action: manipulation;
+}
+
+/**
+ * One ring for every control, because the UA default is not safe here: the
+ * swatches are fully saturated circles carrying a colour the consumer supplies,
+ * and a thin default ring has no defined contrast against an arbitrary one.
+ * `--_text` is the colour the theme already guarantees is readable on the
+ * surface, and the offset lifts the ring clear of the swatch's own fill so it
+ * survives even against a colour close to it.
+ *
+ * `:focus-visible` rather than `:focus`, so a pointer press on a swatch does
+ * not leave a ring behind on a control whose whole job is to be looked at.
+ */
+.vtcp-swatch:focus-visible,
+.vtcp-shade:focus-visible,
+.vtcp-trigger:focus-visible,
+.vtcp-action:focus-visible,
+.vtcp-surface__close:focus-visible,
+.vtcp-band:focus-visible {
+  outline: 2px solid var(--_text);
+  outline-offset: 2px;
+}
+
 /* ─── Popover ─────────────────────────────────────────────────────────────── */
 
 .vtcp-popover__anchor {
@@ -171,9 +202,16 @@
  * The cut is a straight vertical line at the pill's widest point rather than
  * following its curve. For a vertically centred swatch that is the same pixel,
  * and `inset()` cannot round only two corners.
+ *
+ * The horizontal insets are slightly negative rather than zero. The tray takes
+ * focus on the leftmost item the moment it opens, which is while this clip is
+ * still held, and a cut flush with the pill would slice the focus ring off on
+ * that side. A quarter of a rem is the ring's full reach; the items fly in from
+ * `--_burst-step` and further, an order of magnitude beyond it, so nothing this
+ * rule exists to hide is let through.
  */
 .vtcp-tray--bursting {
-  clip-path: inset(-2rem 0 -2rem 0);
+  clip-path: inset(-2rem -0.25rem -2rem -0.25rem);
 }
 
 /* ─── Burst ───────────────────────────────────────────────────────────────── */
@@ -324,6 +362,23 @@
   cursor: pointer;
 }
 
+/**
+ * 24px is the right size for the painted disc — a dismiss button that competes
+ * with the title is a dismiss button people press by accident — but it is a
+ * small thing to hit. The pseudo-element extends the pressable area to 40px
+ * without touching the paint. It belongs to the button, so the hover fill and
+ * the focus ring still describe the visible disc rather than the reach.
+ */
+.vtcp-surface__close {
+  position: relative;
+}
+
+.vtcp-surface__close::before {
+  position: absolute;
+  inset: -0.5rem;
+  content: '';
+}
+
 .vtcp-surface__close:hover {
   background: var(--_surface-muted);
   color: var(--_text);
@@ -370,6 +425,30 @@
     hsl(180deg 72% 55%) 50%, hsl(240deg 72% 55%) 67%, hsl(300deg 72% 55%) 83%,
     hsl(360deg 72% 55%) 100%
   );
+}
+
+/**
+ * A 20px band is a thin thing to hit with a thumb, and a miss on a slider is
+ * worse than a miss on a button: the drag lands nowhere instead of doing the
+ * wrong thing. So the box grows and the paint does not — the gradient is clipped
+ * to the content box, which stays exactly `--_band-height`, and the rest is
+ * transparent padding that still takes the pointer.
+ *
+ * The negative margin hands that padding back to the layout, so the bands sit
+ * where they did and the surface does not get taller. The grid gap is what
+ * bounds the padding: any more and two neighbouring bands would have
+ * overlapping hit areas, and the one that happens to be on top would quietly
+ * take presses meant for the other.
+ *
+ * After the hue band, not before: that rule re-declares `background` with the
+ * shorthand, which resets `background-clip` to its initial value and would put
+ * the gradient back under the padding.
+ */
+.vtcp-band {
+  height: calc(var(--_band-height) + 0.5rem);
+  padding-block: 0.25rem;
+  margin-block: -0.25rem;
+  background-clip: content-box;
 }
 
 .vtcp-band:disabled {
@@ -502,6 +581,25 @@
 
 .vtcp-shade[aria-checked='true']:hover:not(:disabled) {
   box-shadow: var(--ring), var(--_shadow);
+}
+
+/**
+ * Selection is signalled by a halo made of the swatch's own colour, and in
+ * forced colours neither half of that survives: `box-shadow` is not painted at
+ * all, and the backgrounds are replaced with the user's palette, so every
+ * swatch ends up looking the same and nothing says which one is chosen.
+ *
+ * An outline is painted, so the state is redrawn as one. `Highlight` is the
+ * system's own selected colour, which is the pair the user picked for exactly
+ * this meaning — a literal would be one of the colours being overridden.
+ */
+@media (forced-colors: active) {
+  .vtcp-swatch[aria-checked='true'],
+  .vtcp-swatch[aria-pressed='true'],
+  .vtcp-shade[aria-checked='true'] {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
 }
 
 .vtcp-hex {

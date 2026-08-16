@@ -109,6 +109,19 @@ collected at the top, which is also why there is no composite strip: three
 states of different shapes forced to a common height makes the wide ones
 enormous.
 
+## The demo site
+
+The playground is published to GitHub Pages on every push to `main`, from
+`.github/workflows/pages.yml`.
+
+- **`base` comes from `PAGES_BASE`.** A project page is served from `/<repo>/`,
+  not the domain root, so asset URLs need the prefix — and an absolute path is
+  the worst kind of bug to have, because it works locally and 404s only once
+  published.
+- **`demo.html` has to be named in `rollupOptions.input`.** Vite only discovers
+  `index.html` on its own, and the staging page the stills are shot from would
+  silently not be built.
+
 ## Commits and releases
 
 Conventional commits, enforced by commitlint. `pre-commit` runs lint and

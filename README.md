@@ -10,6 +10,8 @@ that every colour a user can reach is one worth shipping.
 
 ![Three states side by side: a resting swatch in a form row, the tray open with a swatch lifted, and the full picker](./docs/hero.png)
 
+**[Try it →](https://fabkho.github.io/vue-tray-color-picker/)**
+
 Most pickers are an HSV square, which will happily hand back `#8B7355`, or a
 fixed palette with nowhere to go when none of the swatches fit. This one gives
 you a hue and five usable shades of it, and a full range with hex entry for when

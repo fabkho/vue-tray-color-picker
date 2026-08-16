@@ -33,7 +33,9 @@ const liveTray = ref<string | null>('#e2a04f')
 <template>
   <h1>vue-tray-color-picker</h1>
   <p class="subtitle">
-    Development surface. Cases are seeded with the awkward inputs, not a happy path.
+    Every case below is live — open a tray, drag a band, type a hex. They are the
+    awkward inputs rather than a happy path, because those are the ones worth seeing.
+    <a href="https://github.com/fabkho/vue-tray-color-picker">Source</a>
   </p>
 
   <section class="case">
