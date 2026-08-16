@@ -347,7 +347,7 @@ describe('ColorPicker — attribute fallthrough', () => {
 
   it('takes a style, which is how a per-instance token override is delivered', async () => {
     wrapper = mount(ColorPicker, {
-      props: { modelValue: null, defaultColor: 'var(--brand)' },
+      props: { modelValue: null, defaultValue: 'var(--brand)' },
       attrs: { style: '--brand: #00dbcb' },
       attachTo: document.body,
     })
@@ -450,13 +450,33 @@ describe('ColorPicker — the custom swatch', () => {
 })
 
 describe('ColorPicker — nested surface', () => {
+  /* The surface is rendered with the tray rather than on demand, so its mere
+     presence proves nothing — only the popover being promoted does. */
+  const surfaceIsOpen = () =>
+    document.querySelector('.vtcp-surface')?.closest('[popover]')?.matches(':popover-open') ?? false
+
   it('opens the surface without closing the tray', async () => {
     await openTray({ modelValue: null })
     customSwatch().click()
     await settle()
 
-    expect(document.querySelector('.vtcp-surface')).not.toBeNull()
+    expect(surfaceIsOpen()).toBe(true)
     expect(trayIsOpen()).toBe(true)
+  })
+
+  it('does not reopen itself the next time the tray does', async () => {
+    // Picking a swatch while the surface is up closes the tray under it, and
+    // the nested popover unmounts before its toggle event reports the close.
+    await openTray({ modelValue: null })
+    customSwatch().click()
+    await settle()
+    swatches()[1]!.click()
+    await settle()
+    expect(trayIsOpen()).toBe(false)
+
+    trigger().click()
+    await settle()
+    expect(surfaceIsOpen()).toBe(false)
   })
 
   it('closes both once a colour is committed', async () => {

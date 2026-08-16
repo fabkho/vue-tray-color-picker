@@ -74,49 +74,51 @@ const inlineOpen = ref(false)
       </div>
     </section>
 
-    <section class="card">
-      <h2>Identity range</h2>
-      <p>
-        The default. No greys and no hex — every rung stays legible as a label or a chart
-        series. <code>{{ identity ?? 'null' }}</code>
-      </p>
-      <ColorSurface v-model="identity" />
-    </section>
+    <div class="demos">
+      <section class="card">
+        <h2>Identity range</h2>
+        <p>
+          The default. No greys and no hex — every rung stays legible as a label or a chart
+          series. <code>{{ identity ?? 'null' }}</code>
+        </p>
+        <ColorSurface v-model="identity" />
+      </section>
 
-    <section class="card">
-      <h2>Full range</h2>
-      <p>
-        For surface and theme colours: a greyscale rung, hex entry, and a ladder reaching
-        near-white. <code>{{ full ?? 'null' }}</code>
-      </p>
-      <ColorSurface
-        v-model="full"
-        range="full"
-      />
-    </section>
+      <section class="card">
+        <h2>Full range</h2>
+        <p>
+          For surface and theme colours: a greyscale rung, hex entry, and a ladder reaching
+          near-white. <code>{{ full ?? 'null' }}</code>
+        </p>
+        <ColorSurface
+          v-model="full"
+          range="full"
+        />
+      </section>
 
-    <section class="card">
-      <h2>Immediate commit</h2>
-      <p>
-        No footer — it writes as you drag, for surfaces that preview the colour live.
-        <code>{{ live ?? 'null' }}</code>
-      </p>
-      <ColorSurface
-        v-model="live"
-        range="full"
-        commit="immediate"
-      />
-    </section>
+      <section class="card">
+        <h2>Immediate commit</h2>
+        <p>
+          No footer — it writes as you drag, for surfaces that preview the colour live.
+          <code>{{ live ?? 'null' }}</code>
+        </p>
+        <ColorSurface
+          v-model="live"
+          range="full"
+          commit="immediate"
+        />
+      </section>
 
-    <section class="card">
-      <h2>Disabled</h2>
-      <p>Every control locked, with no consumer css required.</p>
-      <ColorSurface
-        :model-value="'#e64759'"
-        range="full"
-        disabled
-      />
-    </section>
+      <section class="card">
+        <h2>Disabled</h2>
+        <p>Every control locked, with no consumer css required.</p>
+        <ColorSurface
+          :model-value="'#e64759'"
+          range="full"
+          disabled
+        />
+      </section>
+    </div>
 
     <section class="card card--wide">
       <h2>A default to fall back to</h2>
@@ -211,6 +213,30 @@ const inlineOpen = ref(false)
   margin: 0 auto;
 }
 
+/**
+ * The surface demos share a grid of their own so they can share a height. The
+ * panels themselves differ — full range adds a saturation band and a hex field,
+ * immediate mode drops the footer — and a row of cards that steps up and down
+ * with its contents reads as broken rather than as varied.
+ *
+ * `grid-auto-rows: 1fr` is why they match; it cannot go on the outer grid,
+ * where it would stretch the full-width cards to the same height as well.
+ */
+/* Two lines reserved for every description, so the panels start at the same
+   height as well as the cards ending at one. Matching the boxes alone still
+   left the contents stepping up and down by a line. */
+.demos .card p {
+  min-height: 3em;
+}
+
+.demos {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 1.25rem;
+}
+
 .card--wide {
   grid-column: 1 / -1;
 }
@@ -222,6 +248,11 @@ const inlineOpen = ref(false)
 .card {
   display: grid;
   justify-items: start;
+  /* Rows keep their natural size and the slack collects at the bottom. Grid
+     stretches auto rows by default, which spread the spare height of an
+     equal-height card between its rows and pushed each panel down by a
+     different amount. */
+  align-content: start;
   gap: 0.5rem;
   padding: 1.5rem;
   border-radius: 1.25rem;

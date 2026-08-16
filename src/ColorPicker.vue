@@ -209,6 +209,10 @@ watch(trayOpen, (open) => {
   clearTimeout(burstFallback)
   if (!open) {
     bursting.value = false
+    // The tray body is `v-if`'d away with it, taking the nested popover along
+    // before its own toggle event can report the close. Left set, that stale
+    // `true` reopens the surface unbidden the next time the tray mounts.
+    surfaceOpen.value = false
     return
   }
   landed = 0
