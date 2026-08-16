@@ -30,7 +30,7 @@ mkdirSync(OUT_DIR, { recursive: true })
 
 const browser = await chromium.launch()
 
-async function session(colorScheme) {
+async function session(colorScheme, container = 'settings') {
   const context = await browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: DPR,
@@ -38,14 +38,17 @@ async function session(colorScheme) {
     reducedMotion: 'reduce',
   })
   const page = await context.newPage()
-  await page.goto(`${URL}?bare`, { waitUntil: 'networkidle' })
+  await page.goto(`${URL}?bare&container=${container}`, { waitUntil: 'networkidle' })
   await pause(500)
   return { context, page }
 }
 
 async function boxOf(page, targets) {
   const boxes = (await Promise.all(
-    targets.map(selector => page.locator(selector).first().boundingBox()),
+    targets.map(async (selector) => {
+      const locator = page.locator(selector).first()
+      return await locator.count() ? locator.boundingBox() : null
+    }),
   )).filter(Boolean)
   const left = Math.min(...boxes.map(box => box.x))
   const right = Math.max(...boxes.map(box => box.x + box.width))
@@ -76,14 +79,16 @@ async function shoot(page, name, targets, pad = PAD) {
   return name
 }
 
-const CARD = '.card'
-const TRIGGER = '.row:last-of-type .vtcp-trigger'
+const CARD = '.panel, .preview, .strip'
+const TRIGGER = '.vtcp-trigger'
 const TRAY = '.vtcp-tray'
 const SURFACE = '.vtcp-surface'
 const CUSTOM = '.vtcp-swatch--custom'
 
 async function openTray(page) {
-  await page.locator(TRIGGER).first().click()
+  /* The last picker in the container: whatever the layout, the tray then opens
+     into free space rather than onto the control below it. */
+  await page.locator(TRIGGER).last().click()
   await page.waitForSelector(TRAY)
   await pause(450)
 }
@@ -107,7 +112,7 @@ async function openSurface(page) {
  */
 async function isolate(page, hidden) {
   await page.evaluate((hide) => {
-    for (const selector of ['.card', '.vtcp-tray']) {
+    for (const selector of ['.panel', '.preview', '.strip', '.vtcp-tray']) {
       const element = document.querySelector(selector)
       if (element instanceof HTMLElement) element.style.visibility = hide ? 'hidden' : ''
     }
@@ -118,6 +123,16 @@ async function isolate(page, hidden) {
 }
 
 const written = []
+
+// ─── Container candidates ───
+
+for (const container of ['settings', 'preview', 'strip']) {
+  const { context, page } = await session('light', container)
+  written.push(await shoot(page, `c-${container}-closed`, [CARD]))
+  await openTray(page)
+  written.push(await shoot(page, `c-${container}-tray`, [CARD, TRAY]))
+  await context.close()
+}
 
 // ─── Light ───
 
@@ -237,55 +252,24 @@ const plate = ({ fill, blur, rim, pad, shadow }) => `
       ${shadow};
   }`
 
-const HEROES = [
-  {
-    name: 'hero-1-baseline',
-    size: { width: 1600, height: 900 },
-    css: `${GROUND}${plate({ fill: '40%', blur: '30px', rim: '55%', pad: '62px 84px', shadow: '0 30px 70px rgb(0 0 0 / 14%)' })}`,
-    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
-  },
-  {
-    /* Tighter, so the panels carry the frame instead of the sheet. */
-    name: 'hero-2-tight',
-    size: { width: 1500, height: 780 },
-    css: `${GROUND}${plate({ fill: '38%', blur: '30px', rim: '52%', pad: '44px 58px', shadow: '0 26px 60px rgb(0 0 0 / 14%)' })}
-      .stage { gap: 72px; }`,
-    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
-  },
-  {
-    /* Barely there: more blur, less fill, so the ground reads through it. */
-    name: 'hero-3-clearer',
-    size: { width: 1600, height: 900 },
-    css: `${GROUND}${plate({ fill: '18%', blur: '44px', rim: '38%', pad: '62px 84px', shadow: '0 30px 70px rgb(0 0 0 / 10%)' })}`,
-    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
-  },
-  {
-    /* Nearly opaque, closer to a solid panel than a pane of glass. */
-    name: 'hero-4-solid',
-    size: { width: 1600, height: 900 },
-    css: `${GROUND}${plate({ fill: '68%', blur: '24px', rim: '78%', pad: '62px 84px', shadow: '0 34px 80px rgb(0 0 0 / 16%)' })}`,
-    body: `<div class="ground"></div><div class="plate">${duo()}</div>`,
-  },
-  {
-    /* No sheet at all — a soft bloom behind the pair does the grouping, so
-       nothing has an edge of its own. */
-    name: 'hero-5-bloom',
-    size: { width: 1600, height: 900 },
-    css: `${GROUND}
-      .bloom {
-        position: relative;
-        padding: 62px 84px;
-      }
-      .bloom::before {
-        content: "";
-        position: absolute; inset: -40px;
-        border-radius: 50%;
-        background: radial-gradient(60% 55% at 50% 50%, rgb(255 255 255 / 55%), rgb(255 255 255 / 0%) 70%);
-      }
-      .bloom .stage { position: relative; }`,
-    body: `<div class="ground"></div><div class="bloom">${duo()}</div>`,
-  },
-]
+const CLEARER = plate({
+  fill: '18%', blur: '44px', rim: '38%', pad: '62px 84px',
+  shadow: '0 30px 70px rgb(0 0 0 / 10%)',
+})
+
+/* One hero per container candidate, all on the same chosen ground and plate, so
+   the only thing changing between them is the thing being compared. */
+const HEROES = ['settings', 'preview', 'strip'].map(container => ({
+  name: `hero-${container}`,
+  size: { width: 1600, height: 900 },
+  css: `${GROUND}${CLEARER}`,
+  body: `<div class="ground"></div><div class="plate">
+    <div class="stage">
+      <img src="${inline(`c-${container}-tray`)}" width="660">
+      <img src="${inline('05-surface')}" width="360">
+    </div>
+  </div>`,
+}))
 
 for (const hero of HEROES) {
   const context = await browser.newContext({
