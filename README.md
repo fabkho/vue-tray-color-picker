@@ -49,7 +49,7 @@ const color = ref<string | null>('#1bc98e')
 Surface and theme colours need greys and exact values:
 
 ```vue
-<ColorPicker v-model="background" range="full" clearable default-color="var(--surface)" />
+<ColorPicker v-model="background" range="full" clearable default-value="var(--surface)" />
 ```
 
 ![The full picker: hue band, saturation band, five shades and hex entry](./docs/shots/05-surface.png)
@@ -174,9 +174,9 @@ stylesheet.
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
-| `modelValue` | `string \| null` | — | Hex, or null for unset |
+| `modelValue` | `string \| null` | `null` | Hex, or null for unset |
 | `suggestions` | `ColorSuggestion[]` | six presets | One-tap swatches |
-| `defaultColor` | `string` | `#2b6af8` | Shown while unset; may be a CSS variable |
+| `defaultValue` | `string` | `#2b6af8` | Shown while unset; may be a CSS variable |
 | `range` | `'identity' \| 'full'` | `'identity'` | |
 | `commit` | `'confirm' \| 'immediate'` | `'confirm'` | `immediate` drops the footer and writes as you move |
 | `clearable` | `boolean` | `false` | Offers a swatch that unsets the value |
@@ -187,6 +187,18 @@ stylesheet.
 | `labels` | `Partial<ColorPickerLabels>` | English | Every user-facing string |
 
 Emits `update:modelValue` with a hex string, or `null` when cleared.
+
+The prop shape is exported as `ColorPickerProps`, so a wrapper can extend it
+without restating it — along with `Placement`, which the `placement` prop
+borrows from Floating UI:
+
+```ts
+import type { ColorPickerProps, Placement } from 'vue-tray-color-picker'
+
+interface BrandPickerProps extends ColorPickerProps {
+  fallbackPlacement?: Placement
+}
+```
 
 ### `<ColorSurface>`
 

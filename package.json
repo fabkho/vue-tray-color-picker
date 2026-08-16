@@ -2,7 +2,7 @@
   "name": "vue-tray-color-picker",
   "type": "module",
   "version": "0.0.0",
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@11.21.0",
   "description": "An opinionated Vue 3 colour picker: a floating swatch tray, and behind it a constrained hue and shade picker, so every colour a user can reach is one worth shipping.",
   "author": "Fabian Kirchhoff",
   "license": "MIT",
@@ -28,9 +28,6 @@
     "popover",
     "component"
   ],
-  "sideEffects": [
-    "*.css"
-  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -51,7 +48,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "pnpm -C playground dev",
-    "build:playground": "pnpm --filter playground build",
+    "build:playground": "pnpm --filter playground build && node scripts/verify-playground.mjs",
     "demo:shoot": "node scripts/shoot-demo.mjs",
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",

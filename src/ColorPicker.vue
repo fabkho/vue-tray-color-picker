@@ -1,36 +1,22 @@
-<script setup lang="ts">
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+<script lang="ts">
 import type { Placement } from '@floating-ui/dom'
-import ColorPopover from './ColorPopover.vue'
-import ColorSurface from './ColorSurface.vue'
-import { expandHex, type ColorRange } from './color'
-import { withDefaults as withLabelDefaults, type ColorPickerLabels } from './labels'
-import { useRecentColors } from './recents'
-import { DEFAULT_SUGGESTIONS, type ColorSuggestion } from './suggestions'
+import type { ColorRange } from './color'
+import type { ColorPickerLabels } from './labels'
+import type { ColorSuggestion } from './suggestions'
 
-const {
-  modelValue,
-  suggestions = DEFAULT_SUGGESTIONS,
-  defaultColor = '#2b6af8',
-  range = 'identity',
-  commit = 'confirm',
-  clearable = false,
-  disabled = false,
-  placement = 'bottom-start',
-  recentKey = 'vtcp:recent',
-  recentLimit = 3,
-  labels,
-  saveClass = '',
-  cancelClass = '',
-} = defineProps<{
-  modelValue: string | null
+/* Declared in the plain block rather than inline in `defineProps`, because an
+   interface is only nameable from outside the component if it is exported —
+   and a wrapper component cannot be typed without a name for these. */
+export interface ColorPickerProps {
+  /** Hex, or `null`/absent for unset. */
+  modelValue?: string | null
   /** One-tap swatches; the surface stays available regardless. */
   suggestions?: readonly ColorSuggestion[]
   /** Shown in the trigger while the model is empty. May be a CSS variable. */
-  defaultColor?: string
+  defaultValue?: string
   range?: ColorRange
   commit?: 'confirm' | 'immediate'
-  /** Offers a swatch that unsets the value, falling back to `defaultColor`. */
+  /** Offers a swatch that unsets the value, falling back to `defaultValue`. */
   clearable?: boolean
   disabled?: boolean
   placement?: Placement
@@ -42,7 +28,33 @@ const {
   saveClass?: string
   /** Dropped onto the surface's default Cancel button. */
   cancelClass?: string
-}>()
+}
+</script>
+
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
+import ColorPopover from './ColorPopover.vue'
+import ColorSurface from './ColorSurface.vue'
+import { expandHex } from './color'
+import { withDefaults as withLabelDefaults } from './labels'
+import { useRecentColors } from './recents'
+import { DEFAULT_SUGGESTIONS } from './suggestions'
+
+const {
+  modelValue = null,
+  suggestions = DEFAULT_SUGGESTIONS,
+  defaultValue = '#2b6af8',
+  range = 'identity',
+  commit = 'confirm',
+  clearable = false,
+  disabled = false,
+  placement = 'bottom-start',
+  recentKey = 'vtcp:recent',
+  recentLimit = 3,
+  labels,
+  saveClass = '',
+  cancelClass = '',
+} = defineProps<ColorPickerProps>()
 
 defineSlots<{
   /** Replaces the surface's footer entirely. */
@@ -69,11 +81,24 @@ const { colors: recentColors, remember } = useRecentColors(() => recentKey, () =
 const isPreset = (value: string) =>
   suggestions.some(suggestion => suggestion.value.toLowerCase() === value.toLowerCase())
 
-const swatches = computed(() => [
-  ...suggestions.map(suggestion => ({ value: suggestion.value, label: suggestion.label })),
-  // A mixed colour has nothing to call it but its hex.
-  ...recentColors.value.map(value => ({ value, label: value })),
-])
+/* `remember` screens out presets, but only against the suggestions in force at
+   the time of writing: a stored recent outlives any change to the prop, and the
+   colour it names may be a preset by the next mount. Two swatches would then
+   share a `:key`, which Vue patches wrongly and warns about. Filter here, where
+   the whole list is in hand, rather than trusting the write side. */
+const swatches = computed(() => {
+  const seen = new Set<string>()
+  return [
+    ...suggestions.map(suggestion => ({ value: suggestion.value, label: suggestion.label })),
+    // A mixed colour has nothing to call it but its hex.
+    ...recentColors.value.map(value => ({ value, label: value })),
+  ].filter(({ value }) => {
+    const key = value.toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+})
 
 /** Hex casing varies by source: the surface writes lower, presets are authored. */
 const isSelected = (value: string) =>
@@ -84,7 +109,7 @@ const isSelected = (value: string) =>
 const triggerEl = useTemplateRef('triggerEl')
 
 /**
- * `defaultColor` is often a CSS variable, which the surface cannot decompose.
+ * `defaultValue` is often a CSS variable, which the surface cannot decompose.
  * Reading it back off the rendered element returns the substituted value.
  * Resolved when the tray opens rather than per render — getComputedStyle forces
  * a style recalculation, and it is meaningless on the server.
@@ -136,10 +161,22 @@ function selectAt(index: number) {
   nextTick(() => swatchRefs.value?.[index]?.focus())
 }
 
+/**
+ * Where the arrow starts from is where the user is, not what is selected. The
+ * two normally agree — the popover opens onto the swatch holding `tabindex="0"`,
+ * which is the selected one — but nothing guarantees it, and after any
+ * divergence stepping from the selection would jump the focus somewhere the user
+ * never was.
+ */
+function focusedIndex() {
+  const index = swatchRefs.value?.indexOf(document.activeElement as HTMLButtonElement) ?? -1
+  return index === -1 ? activeIndex.value : index
+}
+
 function moveSelection(offset: number) {
   const total = swatches.value.length
   if (total === 0) return
-  selectAt((activeIndex.value + offset + total) % total)
+  selectAt((focusedIndex() + offset + total) % total)
 }
 
 // ─── Burst ───
@@ -181,6 +218,10 @@ watch(trayOpen, (open) => {
   burstFallback = setTimeout(() => { bursting.value = false }, 1200)
 })
 
+// Unmounting mid-burst — a route change with the tray still open — otherwise
+// leaves the fallback to fire into a component that no longer exists.
+onBeforeUnmount(() => clearTimeout(burstFallback))
+
 // ─── Surface ───
 
 function applyCustom(color: string) {
@@ -214,13 +255,14 @@ watch(surfaceOpen, (open) => {
     v-model:open="trayOpen"
     :placement="placement"
     :disabled="disabled"
+    :aria-label="t.selectColor"
   >
     <template #trigger="{ toggle, triggerAttrs }">
       <button
         ref="triggerEl"
         type="button"
         class="vtcp vtcp-trigger"
-        :style="{ '--vtcp-trigger-color': modelValue || defaultColor }"
+        :style="{ '--vtcp-trigger-color': modelValue || defaultValue }"
         :aria-label="t.selectColor"
         :disabled="disabled"
         v-bind="triggerAttrs"
@@ -246,7 +288,7 @@ watch(surfaceOpen, (open) => {
           <button
             type="button"
             class="vtcp-swatch vtcp-swatch--clear"
-            :style="{ '--color': defaultColor }"
+            :style="{ '--color': defaultValue }"
             :aria-label="t.useDefault"
             :aria-pressed="!modelValue"
             @click="clearColor"
@@ -292,6 +334,7 @@ watch(surfaceOpen, (open) => {
           <ColorPopover
             v-model:open="surfaceOpen"
             placement="right-start"
+            :aria-label="t.custom"
           >
             <template #trigger="{ toggle, triggerAttrs }">
               <button

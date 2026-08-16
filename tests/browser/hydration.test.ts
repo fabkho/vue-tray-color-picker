@@ -56,7 +56,7 @@ describe('server rendering', () => {
   })
 
   it('falls back to the default colour when unset', async () => {
-    const html = await renderThenHydrate({ modelValue: null, defaultColor: '#d33e8a' })
+    const html = await renderThenHydrate({ modelValue: null, defaultValue: '#d33e8a' })
     expect(html).toContain('#d33e8a')
   })
 
@@ -64,7 +64,7 @@ describe('server rendering', () => {
     // getComputedStyle is meaningless on a server and forces a recalculation on
     // a client; it belongs behind the open transition, not in render.
     const spy = vi.spyOn(window, 'getComputedStyle')
-    await renderThenHydrate({ modelValue: null, defaultColor: 'var(--x)' })
+    await renderThenHydrate({ modelValue: null, defaultValue: 'var(--x)' })
     expect(spy).not.toHaveBeenCalled()
   })
 })
@@ -114,6 +114,12 @@ describe('hydration', () => {
     expect(watcher.mismatches).toEqual([])
   })
 
+  it('hydrates cleanly with no model bound at all', async () => {
+    const watcher = watchForMismatch()
+    await renderThenHydrate({ defaultValue: '#d33e8a' })
+    expect(watcher.mismatches).toEqual([])
+  })
+
   it('hydrates cleanly with recent colours already in storage', async () => {
     // The case the deferred read exists for: storage has entries the server
     // could not possibly have known about.
@@ -129,7 +135,7 @@ describe('hydration', () => {
     await renderThenHydrate({
       modelValue: null,
       clearable: true,
-      defaultColor: 'var(--brand, #00dbcb)',
+      defaultValue: 'var(--brand, #00dbcb)',
       range: 'full',
     })
     expect(watcher.mismatches).toEqual([])

@@ -203,15 +203,12 @@
  * following its curve. For a vertically centred swatch that is the same pixel,
  * and `inset()` cannot round only two corners.
  *
- * The horizontal insets are slightly negative rather than zero. The tray takes
- * focus on the leftmost item the moment it opens, which is while this clip is
- * still held, and a cut flush with the pill would slice the focus ring off on
- * that side. A quarter of a rem is the ring's full reach; the items fly in from
- * `--_burst-step` and further, an order of magnitude beyond it, so nothing this
- * rule exists to hide is let through.
+ * The horizontal insets stay at zero. The tray takes focus on its leftmost item
+ * while this clip is still held, but the ring reaches a quarter of a rem and the
+ * pill's own padding is larger than that, so the cut lands outside it either way.
  */
 .vtcp-tray--bursting {
-  clip-path: inset(-2rem -0.25rem -2rem -0.25rem);
+  clip-path: inset(-2rem 0 -2rem 0);
 }
 
 /* ─── Burst ───────────────────────────────────────────────────────────────── */

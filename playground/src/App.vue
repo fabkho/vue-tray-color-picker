@@ -94,7 +94,7 @@ const liveTray = ref<string | null>('#e2a04f')
       v-model="background"
       range="full"
       clearable
-      default-color="var(--pg-default)"
+      default-value="var(--pg-default)"
       recent-key="pg:background"
       class="with-default"
     />

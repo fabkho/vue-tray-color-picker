@@ -81,6 +81,35 @@ describe('ColorPicker — tray', () => {
     const group = document.querySelector('[role="radiogroup"]')!
     expect(group.getAttribute('aria-label')).toBe('Select colour')
   })
+
+  it('names both dialogs, so neither is announced as just "dialog"', async () => {
+    await openTray({ modelValue: null })
+    expect(trayPanel()!.getAttribute('aria-label')).toBe('Select colour')
+
+    customSwatch().click()
+    await settle()
+    const surfacePanel = document.querySelector('.vtcp-surface')!.closest('[popover]')!
+    expect(surfacePanel.getAttribute('aria-label')).toBe('Custom colour')
+  })
+
+  it('opens with no model at all, the shape of an empty ref', async () => {
+    // `ref<string>()` starts undefined, and `v-model` hands that straight over;
+    // requiring the prop would reject the most ordinary binding there is.
+    await openTray({})
+    expect(swatches()).toHaveLength(DEFAULT_SUGGESTIONS.length)
+    expect(swatches().filter(s => s.getAttribute('aria-checked') === 'true')).toHaveLength(0)
+    expect(trigger().style.getPropertyValue('--vtcp-trigger-color')).toBe('#2b6af8')
+  })
+
+  it('shows a colour only once, however it got into the list', async () => {
+    // Recents outlive any change to `suggestions`, so a stored colour can turn
+    // into a preset between mounts — and two swatches would share a key.
+    const preset = DEFAULT_SUGGESTIONS[0]!.value
+    localStorage.setItem('vtcp:recent', JSON.stringify([preset]))
+
+    await openTray({})
+    expect(swatches()).toHaveLength(DEFAULT_SUGGESTIONS.length)
+  })
 })
 
 describe('ColorPicker — keyboard', () => {
@@ -101,6 +130,14 @@ describe('ColorPicker — keyboard', () => {
     swatches()[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }))
     await settle()
     expect(emittedValue(w)).toBe(DEFAULT_SUGGESTIONS.at(-1)!.value)
+  })
+
+  it('steps from where the focus is, not from what is selected', async () => {
+    const w = await openTray({ modelValue: DEFAULT_SUGGESTIONS[0]!.value })
+    swatches()[3]!.focus()
+    swatches()[3]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await settle()
+    expect(emittedValue(w)).toBe(DEFAULT_SUGGESTIONS[4]!.value)
   })
 
   it('reaches the ends with Home and End', async () => {
@@ -138,7 +175,7 @@ describe('ColorPicker — clear swatch', () => {
   })
 
   it('shows the colour it will revert to', async () => {
-    await openTray({ modelValue: '#2b6af8', clearable: true, defaultColor: '#1bc98e' })
+    await openTray({ modelValue: '#2b6af8', clearable: true, defaultValue: '#1bc98e' })
     expect(clearSwatch()!.style.getPropertyValue('--color')).toBe('#1bc98e')
   })
 
@@ -153,7 +190,7 @@ describe('ColorPicker — default colour resolution', () => {
   it('resolves a CSS variable default off the rendered element', async () => {
     // The surface cannot decompose var(); it has to be read back after paint.
     document.documentElement.style.setProperty('--brand', '#d33e8a')
-    await openTray({ modelValue: null, defaultColor: 'var(--brand)' })
+    await openTray({ modelValue: null, defaultValue: 'var(--brand)' })
 
     customSwatch().click()
     await settle()
@@ -165,7 +202,7 @@ describe('ColorPicker — default colour resolution', () => {
 
   it('expands a shorthand default', async () => {
     document.documentElement.style.setProperty('--brand', '#abc')
-    await openTray({ modelValue: null, defaultColor: 'var(--brand)' })
+    await openTray({ modelValue: null, defaultValue: 'var(--brand)' })
 
     customSwatch().click()
     await settle()
@@ -282,7 +319,7 @@ describe('ColorPicker — the burst', () => {
   it('replays the next time the tray opens', async () => {
     // The content mounts fresh per open; a persistent panel would run the
     // animation once and never again.
-    const w = await openTray({ modelValue: null })
+    await openTray({ modelValue: null })
     expect(items().length).toBeGreaterThan(0)
 
     trigger().click()
@@ -292,7 +329,6 @@ describe('ColorPicker — the burst', () => {
     trigger().click()
     await settle()
     expect(getComputedStyle(items()[0]!).animationName).toBe('vtcp-burst-in')
-    expect(w).toBeTruthy()
   })
 })
 

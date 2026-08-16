@@ -30,7 +30,7 @@ const brand = ref<string | null>('#8e5dca')
           v-model="accent"
           range="full"
           clearable
-          default-color="#8a8a8f"
+          default-value="#8a8a8f"
           recent-key="demo:accent"
         />
       </div>
@@ -44,7 +44,7 @@ const brand = ref<string | null>('#8e5dca')
           v-model="surfaceColor"
           range="full"
           clearable
-          default-color="#f2f4f6"
+          default-value="#f2f4f6"
           recent-key="demo:surface"
         />
       </div>
