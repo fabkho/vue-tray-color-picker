@@ -4,18 +4,12 @@
 [![npm](https://img.shields.io/npm/v/vue-tray-color-picker?colorA=18181b&colorB=4fc08d)](https://www.npmjs.com/package/vue-tray-color-picker)
 [![license](https://img.shields.io/npm/l/vue-tray-color-picker?colorA=18181b&colorB=4fc08d)](./LICENSE)
 
-An opinionated Vue 3 colour picker. A floating tray puts the common colours one
-tap away; behind the `+` is a full picker — hue, shades, greys and hex — built so
-that every colour a user can reach is one worth shipping.
-
-![Three states side by side: a resting swatch in a form row, the tray open with a swatch lifted, and the full picker](./docs/hero.png)
+Tap a swatch and the presets burst out of it. Behind the `+`, a hue-and-shade
+picker where every reachable colour is one worth shipping.
 
 **[Try it →](https://fabkho.github.io/vue-tray-color-picker/)**
 
-Most pickers are an HSV square, which will happily hand back `#8B7355`, or a
-fixed palette with nowhere to go when none of the swatches fit. This one gives
-you a hue and five usable shades of it, and a full range with hex entry for when
-you need an exact value.
+![The tray open beside a form row, a swatch lifted under the cursor](./docs/shots/03-hover.png)
 
 ## Install
 
@@ -28,10 +22,8 @@ import { ColorPicker } from 'vue-tray-color-picker'
 import 'vue-tray-color-picker/style.css'
 ```
 
-The stylesheet is a separate import on purpose: nothing is injected, so load
-order stays yours.
-
-## Usage
+The stylesheet is a separate import — nothing is injected, so load order stays
+yours.
 
 ```vue
 <script setup lang="ts">
@@ -46,52 +38,28 @@ const color = ref<string | null>('#1bc98e')
 </template>
 ```
 
-Surface and theme colours need greys and exact values:
+## The ladder
 
-```vue
-<ColorPicker v-model="background" range="full" clearable default-value="var(--surface)" />
-```
+Hue, a three-step saturation scale, five lightness rungs.
 
-![The full picker: hue band, saturation band, five shades and hex entry](./docs/shots/05-surface.png)
+- `range="identity"` (default) — no greys, no hex. Every rung works as a label
+  or a chart series.
+- `range="full"` — greyscale rung, hex entry, rungs reaching near-black and
+  near-white.
 
-## What it does not do
-
-- **No alpha channel.** Hex in, hex out, fully opaque.
-- **No colour spaces beyond sRGB hex.** An OKLCH ladder would give perceptually
-  even shades across hues and is the most promising future change, but it would
-  alter which colours are reachable.
-
-## How the ladder works
-
-Three axes: a continuous hue, a three-step saturation scale, and a five-rung
-lightness ladder. `range="identity"` (the default) keeps to the legible middle
-and pins saturation to vivid — for an entity's own colour, where every reachable
-value has to work as a label and a chart series. `range="full"` reaches toward
-black and white and unlocks the greyscale rung plus hex entry.
-
-**The ring tells the truth.** It marks the rung whose colour *is* the current
-value, compared exactly. Open the picker on something the ladder cannot express
-— a muted slate, a near-grey, most brand palettes — and no rung is ringed,
-because none of them is that colour. Pointing at the nearest one would claim a
-colour the preview does not show. Touch any control and the ring appears and
-stays.
-
-Opening the picker never rewrites your value. Save without touching anything and
-you get back exactly what you passed in, byte for byte.
+The ring marks the rung the value **is**, compared exactly. Open on something
+off the ladder and nothing is ringed.
 
 ![A muted slate typed into the hex field, with no shade ringed](./docs/shots/07-off-ladder.png)
 
-<sub>`#7A8B99` is not on the ladder, so nothing claims to be it.</sub>
+Opening never rewrites your value: save an untouched picker and you get back
+what you passed in, byte for byte.
 
-The band's thumb is frosted rather than solid: it samples the band beneath and
-carries a wash of the colour it is sitting on.
+No alpha channel — hex in, hex out.
 
-![Close on the hue and saturation bands and their frosted thumbs](./docs/shots/06-bands.png)
+## Your own container
 
-## Using your own container
-
-`ColorSurface` renders anywhere — a dropdown you already have, a modal, or
-inline:
+`ColorSurface` renders anywhere:
 
 ```vue
 <MyDropdown>
@@ -99,16 +67,11 @@ inline:
 </MyDropdown>
 ```
 
-A floating layer ships with the package so `ColorPicker` works out of the box,
-but nothing in the picker depends on it and most projects will want their own.
+A floating layer ships so `ColorPicker` works unconfigured; nothing depends on it.
 
 ## Theming
 
-Every visual value resolves through three tiers, first match wins:
-
-1. `--vtcp-*` — this component
-2. `--ui-*` — your design system, adopted by anything reading the same names
-3. a literal default, so it looks right with no theme at all
+Every value resolves `--vtcp-*`, then `--ui-*`, then a literal default.
 
 ```css
 :root {
@@ -132,7 +95,7 @@ Every visual value resolves through three tiers, first match wins:
 | `--vtcp-surface-muted` | `light-dark(#f4f4f6, #2a2a2e)` |
 | `--vtcp-primary` / `--vtcp-primary-text` | `light-dark(#18181b, #e4e4e7)` / inverted |
 | `--vtcp-tray-gap` / `--vtcp-tray-padding` | `0.5rem` / `0.375rem` |
-| `--vtcp-glass-blur` | `20px` — set to `0` for a flat pill |
+| `--vtcp-glass-blur` | `20px` — `0` for a flat pill |
 | `--vtcp-glass-surface` | `light-dark(rgb(255 255 255 / 92%), rgb(30 30 30 / 92%))` |
 | `--vtcp-glass-border` | `light-dark(rgb(210 214 222 / 40%), rgb(255 255 255 / 8%))` |
 | `--vtcp-glass-shadow` | a soft ambient shadow |
@@ -140,34 +103,19 @@ Every visual value resolves through three tiers, first match wins:
 | `--vtcp-band-height` | `1.25rem` |
 | `--vtcp-thumb-width` / `--vtcp-thumb-height` | `1.0625rem` / `1.75rem` |
 | `--vtcp-thumb-radius` | `0.6rem` |
-| `--vtcp-thumb-blur` | `3px` — the band's frost |
+| `--vtcp-thumb-blur` | `3px` |
 | `--vtcp-thumb-fill` | `rgb(255 255 255 / 10%)` |
 
-The tray is a translucent pill with a backdrop blur, and its swatches burst in
-staggered from the trigger. Both are the point rather than decoration, but
-`--vtcp-glass-blur: 0` gives a flat pill if the blur is too expensive or reads
-badly over a busy background, and `prefers-reduced-motion` removes the burst.
-
-The band's thumb is frosted rather than solid: `backdrop-filter` samples the
-band beneath it, so it carries a wash of the colour it is sitting on and changes
-hue as you drag. Where `backdrop-filter` is unsupported it falls back to a
-translucent white body.
-
-**Dark mode** is `light-dark()` against the inherited `color-scheme`. There is no
-class or data-attribute convention to adopt — but you do need to declare
-`color-scheme` somewhere above the picker, or it resolves light:
+Dark mode is `light-dark()` against the **inherited** `color-scheme`, so declare
+it above the picker or it resolves light:
 
 ```css
 :root { color-scheme: light dark; }
 ```
 
-It is deliberately not declared on the component: that would override a host
-forcing one scheme on purpose.
-
 ![The picker in dark mode](./docs/shots/09-surface-dark.png)
 
-Motion is suppressed under `prefers-reduced-motion` by the package's own
-stylesheet.
+`prefers-reduced-motion` removes the burst.
 
 ## API
 
@@ -180,7 +128,7 @@ stylesheet.
 | `defaultValue` | `string` | `#2b6af8` | Shown while unset; may be a CSS variable |
 | `range` | `'identity' \| 'full'` | `'identity'` | |
 | `commit` | `'confirm' \| 'immediate'` | `'confirm'` | `immediate` drops the footer and writes as you move |
-| `clearable` | `boolean` | `false` | Offers a swatch that unsets the value |
+| `clearable` | `boolean` | `false` | Adds a swatch that unsets the value |
 | `disabled` | `boolean` | `false` | |
 | `placement` | `Placement` | `'bottom-start'` | |
 | `recentKey` | `string \| null` | `'vtcp:recent'` | Scope per field; `null` disables persistence |
@@ -189,34 +137,15 @@ stylesheet.
 
 Emits `update:modelValue` with a hex string, or `null` when cleared.
 
-The prop shape is exported as `ColorPickerProps`, so a wrapper can extend it
-without restating it — along with `Placement`, which the `placement` prop
-borrows from Floating UI:
-
-```ts
-import type { ColorPickerProps, Placement } from 'vue-tray-color-picker'
-
-interface BrandPickerProps extends ColorPickerProps {
-  fallbackPlacement?: Placement
-}
-```
+`ColorPickerProps` and `Placement` are exported, so a wrapper can extend the
+prop shape without restating it.
 
 ### `<ColorSurface>`
 
 The panel alone: `modelValue`, `range`, `commit`, `disabled`, `labels`,
 `saveClass`, `cancelClass`. Emits `update:modelValue` and `close`.
 
-### Replacing the footer buttons
-
-Two routes, depending on how far you need to go. For a restyle, pass your own
-classes — they land on the default buttons alongside ours:
-
-```vue
-<ColorPicker v-model="color" save-class="a-btn a-btn--primary" cancel-class="a-btn" />
-```
-
-For different markup entirely, take the `#actions` slot. It replaces the footer
-and hands you the handlers:
+Restyle the footer with `saveClass` / `cancelClass`, or replace it:
 
 ```vue
 <ColorPicker v-model="color">
@@ -227,27 +156,22 @@ and hands you the handlers:
 </ColorPicker>
 ```
 
-Both are available on `ColorPicker` and on `ColorSurface`.
-
 ### `<ColorPopover>`
 
-The bundled floating layer, so the picker works without one of your own:
-`open` (v-model), `placement`, `gap`, `disabled`. Slots
-`#trigger="{ open, toggle, triggerAttrs }"` and `#default="{ close }"`. Swap it
-for your own dropdown and nothing else changes.
+The bundled floating layer: `open` (v-model), `placement`, `gap`, `disabled`.
+Slots `#trigger="{ open, toggle, triggerAttrs }"` and `#default="{ close }"`.
 
 ### Colour maths
 
 `hexToHsl`, `hslToHex`, `isHex`, `expandHex`, `shadesFor`, `resolveAxes`,
-`nearestStepIndex`, `lightnessSteps`, and the step tables — all pure, all
-exported, usable without the components.
+`nearestStepIndex`, `lightnessSteps`, and the step tables — pure, exported,
+usable without the components.
 
 ## Accessibility
 
 Both swatch groups are radio groups: one tab stop, arrows move and select, Home
-and End reach the ends. The bundled layer traps Tab, closes on Escape and on an
-outside click, and returns focus to the trigger. Every swatch has a name — a
-preset's label, or its hex for a mixed colour.
+and End reach the ends. The bundled layer traps Tab, closes on Escape and
+outside click, and returns focus to the trigger. Every swatch has a name.
 
 ## Contributing
 

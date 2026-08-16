@@ -7,6 +7,7 @@ import { ColorPicker, ColorSurface } from 'vue-tray-color-picker'
  * than a tour of the internals — the floating layer in particular stays quiet,
  * since most projects will drop the surface into a dropdown they already have.
  */
+const showcase = ref<string | null>('#1bc98e')
 const accent = ref<string | null>('#1bc98e')
 const surfaceColor = ref<string | null>('#f2f4f6')
 const brand = ref<string | null>('#8e5dca')
@@ -34,6 +35,25 @@ const inlineOpen = ref(false)
   </header>
 
   <main class="cases">
+    <!-- The tray first and on its own. It is the reason to use this over any
+         other picker, and it has to be tapped to be understood. -->
+    <section class="card card--wide showcase">
+      <h2>Tap the swatch</h2>
+      <p>
+        The presets burst out of the trigger, one tap from the value you probably want.
+        The plus opens the full picker without closing the tray.
+      </p>
+      <div class="showcase__stage">
+        <ColorPicker
+          v-model="showcase"
+          range="full"
+          clearable
+          recent-key="pg:showcase"
+        />
+        <code>{{ showcase ?? 'null' }}</code>
+      </div>
+    </section>
+
     <section class="card card--wide">
       <h2>In a form</h2>
       <p>Where it usually lives. Take a preset, or mix your own behind the plus.</p>
@@ -222,11 +242,28 @@ const inlineOpen = ref(false)
  * `grid-auto-rows: 1fr` is why they match; it cannot go on the outer grid,
  * where it would stretch the full-width cards to the same height as well.
  */
-/* Two lines reserved for every description, so the panels start at the same
-   height as well as the cards ending at one. Matching the boxes alone still
-   left the contents stepping up and down by a line. */
+/* Two lines reserved for every description, so the heading block is the same
+   height in every card. */
 .demos .card p {
   min-height: 3em;
+}
+
+/**
+ * Heading, description, then a row that takes whatever is left — so the panel
+ * sits in the middle of the space below the text rather than against the top
+ * of a card that is taller than it needs to be.
+ *
+ * The panels are genuinely different sizes: full range carries a saturation
+ * band and a hex field, immediate mode has no footer. Centring shares the
+ * difference out above and below instead of letting it all fall to the bottom.
+ */
+.demos .card {
+  grid-template-rows: auto auto 1fr;
+  align-content: stretch;
+}
+
+.demos .card .vtcp-surface {
+  place-self: center;
 }
 
 .demos {
@@ -239,6 +276,31 @@ const inlineOpen = ref(false)
 
 .card--wide {
   grid-column: 1 / -1;
+}
+
+/* `.card.showcase`, not `.showcase`: the base card rule is declared later in
+   this sheet and at equal specificity would win the alignment back. */
+.card.showcase {
+  justify-items: center;
+  padding: 2.5rem 1.5rem 3rem;
+  text-align: center;
+}
+
+.showcase h2 {
+  font-size: 1.25rem;
+}
+
+.showcase p {
+  max-width: 32rem;
+}
+
+/* Room beneath for the tray to open into, so the first thing a visitor tries
+   does not push the page around. */
+.showcase__stage {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 5.5rem;
 }
 
 /**
