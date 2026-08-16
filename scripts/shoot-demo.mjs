@@ -223,12 +223,6 @@ const CHROME = `
   figcaption b { display: block; font-weight: 590; color: #1d1d1f; letter-spacing: -0.015em; }
 `
 
-const duo = (tray = '03-hover', surface = '05-surface') => `
-  <div class="stage">
-    <img src="${inline(tray)}" width="660">
-    <img src="${inline(surface)}" width="360">
-  </div>`
-
 /* The whole gradient, not a crop of it. `cover` cut most of the supplied
    artwork away. A soft gradient has no hard edges to distort, so stretching it
    to the canvas keeps every part visible; the only cost is how far the shape is
