@@ -10,20 +10,10 @@ that every colour a user can reach is one worth shipping.
 
 ![Three states side by side: a resting swatch in a form row, the tray open with a swatch lifted, and the full picker](./docs/hero.png)
 
-## The problem
-
-Colour pickers come in two shapes, and both fail the same job.
-
-An **unconstrained HSV square** lets anyone pick `#8B7355` for a brand accent.
-It is technically a colour. It is also mud, and now it is in your product,
-attached to a customer's account, showing up in every chart.
-
-A **fixed palette** never produces mud, but the moment none of its swatches is
-right, there is nowhere to go.
-
-This picker takes the middle: pick a hue, get five shades of it, all of them
-usable. The constraint *is* the feature. When you genuinely need an exact value
-— a surface colour, a brand match — switch to the full range and type hex.
+Most pickers are an HSV square, which will happily hand back `#8B7355`, or a
+fixed palette with nowhere to go when none of the swatches fit. This one gives
+you a hue and five usable shades of it, and a full range with hex entry for when
+you need an exact value.
 
 ## Install
 

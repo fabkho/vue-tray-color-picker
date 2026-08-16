@@ -8,19 +8,29 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [
     vue(),
-    dts({ include: ['src'], tsconfigPath: './tsconfig.json' }),
+    // Declaration maps are worth having locally, but only `dist` is published,
+    // so shipped ones would point at sources the consumer never receives.
+    dts({
+      include: ['src'],
+      tsconfigPath: './tsconfig.json',
+      compilerOptions: { declarationMap: false },
+    }),
   ],
   build: {
     // One stylesheet, imported explicitly by the consumer — never injected, so
     // load order stays theirs to control.
     cssCodeSplit: false,
+    // tsconfig's `sourceMap` never reaches the bundler; this is what emits .js.map.
+    sourcemap: true,
     lib: {
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       formats: ['es'],
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue'],
+      // @floating-ui is a real dependency, not a vendored one — bundling it would
+      // hand consumers a second copy alongside the one npm already installs.
+      external: ['vue', /^@floating-ui\//],
       output: {
         assetFileNames: assetInfo =>
           assetInfo.names?.some(name => name.endsWith('.css')) ? 'style.css' : '[name][extname]',
@@ -48,6 +58,9 @@ export default defineConfig({
             provider: playwright(),
             headless: true,
             instances: [{ browser: 'chromium' }],
+            // A failing assertion is already legible from its message; the PNGs
+            // only ever accumulated as untracked debris.
+            screenshotFailures: false,
           },
         },
       },

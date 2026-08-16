@@ -16,11 +16,15 @@ const {
   placement = 'bottom-start',
   gap = 8,
   disabled = false,
+  ariaLabel,
 } = defineProps<{
   placement?: Placement
   /** Distance from the trigger, in pixels. */
   gap?: number
   disabled?: boolean
+  /** Names the dialog. The trigger promises `aria-haspopup="dialog"`, and a
+      dialog with no name is announced as just "dialog" — say which one. */
+  ariaLabel?: string
 }>()
 
 defineSlots<{
@@ -190,6 +194,7 @@ onBeforeUnmount(stopPositioning)
     popover="auto"
     class="vtcp vtcp-popover"
     role="dialog"
+    :aria-label="ariaLabel"
     @toggle="onToggleEvent"
     @keydown="onKeydown"
   >
