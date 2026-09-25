@@ -46,7 +46,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "prepack": "pnpm build",
     "build": "vite build",
+    "check:dts": "node scripts/check-dts.mjs",
     "dev": "pnpm -C playground dev",
     "build:playground": "pnpm --filter playground build && node scripts/verify-playground.mjs",
     "demo:shoot": "node scripts/shoot-demo.mjs",

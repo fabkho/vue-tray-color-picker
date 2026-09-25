@@ -77,7 +77,10 @@ export function hexToHsl(hex: string): Hsl | null {
   // than dividing by zero.
   if (delta === 0) return { h: 0, s: 0, l }
 
-  const s = delta / (1 - Math.abs(2 * l - 1))
+  // Clamped because the divisor is computed in floating point: `#000001` lands
+  // on 1.0000000000000036, which breaks the documented 0-1 range for anyone
+  // formatting it as a percentage.
+  const s = clamp01(delta / (1 - Math.abs(2 * l - 1)))
   let h: number
   if (max === r) h = ((g - b) / delta) % 6
   else if (max === g) h = (b - r) / delta + 2

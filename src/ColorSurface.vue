@@ -1,27 +1,11 @@
-<script setup lang="ts">
-import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
-import {
-  hexToHsl,
-  hslToHex,
-  isHex,
-  lightnessSteps,
-  resolveAxes,
-  SATURATION_STEPS,
-  shadesFor,
-  VIVID_SATURATION_INDEX,
-  type ColorRange,
-} from './color'
-import { withDefaults as withLabelDefaults, type ColorPickerLabels } from './labels'
+<script lang="ts">
+import type { ColorRange } from './color.js'
+import type { ColorPickerLabels } from './labels.js'
 
-const {
-  modelValue,
-  range = 'identity',
-  commit = 'confirm',
-  disabled = false,
-  labels,
-  saveClass = '',
-  cancelClass = '',
-} = defineProps<{
+/* Named and exported because the README points people at this component as the
+   standalone entry point — rendering it inside your own dropdown means naming
+   its props, which an anonymous literal does not allow. */
+export interface ColorSurfaceProps {
   modelValue: string | null
   /** `full` adds the greyscale rung and hex entry, for surface and theme colours. */
   range?: ColorRange
@@ -33,7 +17,34 @@ const {
   saveClass?: string
   /** Dropped onto the default Cancel button. */
   cancelClass?: string
-}>()
+}
+</script>
+
+<script setup lang="ts">
+import type { ComponentPublicInstance } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
+import {
+  expandHex,
+  hexToHsl,
+  hslToHex,
+  isHex,
+  lightnessSteps,
+  resolveAxes,
+  SATURATION_STEPS,
+  shadesFor,
+  VIVID_SATURATION_INDEX,
+} from './color.js'
+import { withDefaults as withLabelDefaults } from './labels.js'
+
+const {
+  modelValue,
+  range = 'identity',
+  commit = 'confirm',
+  disabled = false,
+  labels,
+  saveClass = '',
+  cancelClass = '',
+} = defineProps<ColorSurfaceProps>()
 
 defineSlots<{
   /** Replaces the footer entirely. Bind the handlers to your own controls. */
@@ -78,10 +89,23 @@ function adopt(color: string, echo = true) {
 
 /** In `immediate` mode our own writes come back through `modelValue`;
     re-adopting them re-snaps the axes under a control being dragged. */
+/* `expandHex`, not `isHex`: shorthand is a perfectly ordinary way to write a
+   colour, and treating `#fff` as invalid meant falling back to the seed blue —
+   so a standalone surface opened on white saved as blue. `ColorPicker` expands
+   before it hands the value over, which hid this from everyone but the
+   consumers the README points at this component directly. */
 watch(() => modelValue, (color) => {
   if (color?.toLowerCase() === draft.value.toLowerCase()) return
-  adopt(color && isHex(color) ? color : FALLBACK)
+  adopt(expandHex(color ?? '') ?? FALLBACK)
 }, { immediate: true })
+
+/* The ladder and the saturation axis are both functions of `range`, so a change
+   to it leaves every index describing a grid that no longer exists — most
+   visibly when the saturation control unmounts on the way to `identity` and
+   leaves its index stranded at grey, painting the whole ladder in it. Re-adopt
+   the draft to resolve the axes afresh; the colour itself does not move, so
+   there is nothing to emit. */
+watch(() => range, () => adopt(draft.value))
 
 function publish() {
   if (commit === 'immediate') emit('update:modelValue', draft.value)
@@ -138,13 +162,20 @@ const saturationTrack = computed(() => ({
   to: hslToHex(hue.value, SATURATION_STEPS.at(-1)!, lightnessSteps(range)[lightnessIndex.value]!),
 }))
 
-const shadeRefs = useTemplateRef('shadeRefs')
+/* Indexed by hand: a `v-for` ref array is filled in patch order, which Vue does
+   not promise matches the source array, so `refs[i]` need not be rung `i`. */
+const shadeEls = new Map<number, HTMLButtonElement>()
+
+function setShadeRef(el: Element | ComponentPublicInstance | null, index: number) {
+  if (el) shadeEls.set(index, el as HTMLButtonElement)
+  else shadeEls.delete(index)
+}
 
 /** Arrow keys move and select together, per the radio-group pattern. */
 function selectShade(index: number) {
   lightnessIndex.value = index
   syncFromAxes()
-  nextTick(() => shadeRefs.value?.[index]?.focus())
+  nextTick(() => shadeEls.get(index)?.focus())
 }
 
 function moveShade(offset: number) {
@@ -236,8 +267,8 @@ function cancel() {
     >
       <button
         v-for="(shade, index) in shades"
-        ref="shadeRefs"
         :key="shade"
+        :ref="el => setShadeRef(el, index)"
         type="button"
         role="radio"
         class="vtcp-shade"

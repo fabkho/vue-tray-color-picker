@@ -53,6 +53,9 @@ const isOpen = () => panel().matches(':popover-open')
 afterEach(() => {
   wrapper?.unmount()
   wrapper = null
+  // Hosts some tests mount into. In a hook because a failing assertion skips
+  // any teardown written at the end of the test body.
+  document.querySelectorAll('[data-test-host]').forEach(el => el.remove())
 })
 
 describe('ColorPopover — open and close', () => {
@@ -160,28 +163,35 @@ describe('ColorPopover — focus', () => {
     expect(document.activeElement?.id).toBe('trigger')
   })
 
-  it('wraps Tab at the end rather than escaping to the page', async () => {
+  /* Driven through `userEvent`, not a synthetic KeyboardEvent: a dispatched
+     event's `preventDefault()` cannot suppress the browser's own tab
+     navigation, so a synthetic Tab proves only that a handler ran — never where
+     focus actually ends up, which is the entire claim here. */
+  it('lets Tab leave the panel rather than trapping it', async () => {
     render()
     trigger().click()
     await settle()
 
     document.querySelector<HTMLButtonElement>('#last')!.focus()
-    panel().dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))
+    await userEvent.tab()
     await settle()
-    expect(document.activeElement?.id).toBe('first')
+    // Non-modal: the page behind stays live, so the keyboard has to be able to
+    // reach it. A trap here would disagree with both the pointer and the
+    // screen-reader cursor, neither of which is confined.
+    expect(panel().contains(document.activeElement)).toBe(false)
   })
 
-  it('wraps Shift+Tab at the start', async () => {
+  it('walks Shift+Tab back to the trigger', async () => {
+    // The panel is nested inside the anchor, so document order puts the trigger
+    // immediately before it — which is what makes the trap unnecessary.
     render()
     trigger().click()
     await settle()
 
     document.querySelector<HTMLButtonElement>('#first')!.focus()
-    panel().dispatchEvent(new KeyboardEvent('keydown', {
-      key: 'Tab', shiftKey: true, bubbles: true, cancelable: true,
-    }))
+    await userEvent.tab({ shift: true })
     await settle()
-    expect(document.activeElement?.id).toBe('last')
+    expect(document.activeElement?.id).toBe('trigger')
   })
 })
 
@@ -255,6 +265,7 @@ describe('ColorPopover — positioning', () => {
   it('escapes a clipping ancestor', async () => {
     // The classic reason a hand-rolled layer fails: an overflow:hidden parent.
     const clip = document.createElement('div')
+    clip.dataset.testHost = ''
     clip.style.cssText = 'overflow:hidden;width:80px;height:40px;position:relative'
     document.body.appendChild(clip)
 
@@ -268,7 +279,5 @@ describe('ColorPopover — positioning', () => {
     // off at it, which is what an in-flow absolutely positioned panel would do.
     expect(panelBox.bottom).toBeGreaterThan(clipBox.bottom)
     expect(panelBox.height).toBeGreaterThan(0)
-
-    clip.remove()
   })
 })

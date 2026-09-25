@@ -92,11 +92,19 @@
 
 /* Every one of these is a single-tap control, so there is no double-tap gesture
    worth waiting 300ms for. Picking a colour is the kind of thing people do
-   several times in a row, and the delay reads as the tray being slow. */
+   several times in a row, and the delay reads as the tray being slow.
+
+   The close button and the bands belong here too, and for a sharper reason:
+   both reach past their paint for a larger hit area, so the pressable box is
+   the part a thumb lands on. A 300ms wait on a slider is worse still — the
+   delay swallows the start of the drag, and the thumb jumps once it resolves
+   rather than following the finger. */
 .vtcp-swatch,
 .vtcp-shade,
 .vtcp-trigger,
-.vtcp-action {
+.vtcp-action,
+.vtcp-surface__close,
+.vtcp-band {
   touch-action: manipulation;
 }
 
@@ -596,6 +604,24 @@
   .vtcp-shade[aria-checked='true'] {
     outline: 2px solid Highlight;
     outline-offset: 2px;
+  }
+
+  /**
+   * Forced colours exist to make *chrome* legible, and the substitution is the
+   * right default for almost everything here — the panel, the text, the borders,
+   * the buttons should all follow whatever palette the user chose. These three
+   * are the exception: their background is not decoration, it is the content.
+   * A colour picker whose swatches are all painted the same system colour has
+   * nothing left to pick from, and the shade ladder becomes a row of clones.
+   *
+   * So the opt-out is per-element rather than on `.vtcp`. The rest of the
+   * component keeps honouring the palette; only the samples keep their own
+   * colour, which is exactly the information forced colours would destroy.
+   */
+  .vtcp-swatch,
+  .vtcp-shade,
+  .vtcp-surface__preview {
+    forced-color-adjust: none;
   }
 }
 

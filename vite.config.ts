@@ -10,10 +10,31 @@ export default defineConfig({
     vue(),
     // Declaration maps are worth having locally, but only `dist` is published,
     // so shipped ones would point at sources the consumer never receives.
+    /**
+     * Two separate things stop a `node16`/`nodenext` consumer from resolving
+     * these declarations, and both fail silently — under the near-universal
+     * `skipLibCheck` the errors vanish and every export becomes `any`.
+     *
+     * `cleanVueFileName` handles the first: `ColorPicker.vue.d.ts` is only
+     * findable by a resolver willing to try the bare `.vue` specifier, which
+     * that mode is not. It emits `ColorPicker.d.ts` instead.
+     *
+     * That leaves the specifier extensionless, which the same mode also
+     * rejects. The `.ts` sources say `./color.js` for exactly this reason, but
+     * the ones `cleanVueFileName` rewrites cannot, so they are patched here.
+     */
     dts({
       include: ['src'],
       tsconfigPath: './tsconfig.json',
+      cleanVueFileName: true,
       compilerOptions: { declarationMap: false },
+      beforeWriteFile: (filePath, content) => ({
+        filePath,
+        content: content.replace(
+          /(\bfrom\s+'\.\.?\/[^']+)'/g,
+          (whole, specifier) => (/\.[cm]?js$/.test(specifier) ? whole : `${specifier}.js'`),
+        ),
+      }),
     }),
   ],
   build: {

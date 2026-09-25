@@ -1,6 +1,5 @@
-<script setup lang="ts">
-import { autoUpdate, computePosition, flip, offset, shift, type Placement } from '@floating-ui/dom'
-import { nextTick, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
+<script lang="ts">
+import type { Placement } from '@floating-ui/dom'
 
 /**
  * The default floating layer, and the designated swap-out point: a consumer with
@@ -12,12 +11,10 @@ import { nextTick, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch
  * collision detection against scroll containers is the genuinely hard part.
  */
 
-const {
-  placement = 'bottom-start',
-  gap = 8,
-  disabled = false,
-  ariaLabel,
-} = defineProps<{
+/* Named and exported because this is a documented extension point: swapping the
+   floating layer means writing a component that stands in for this one, and that
+   cannot be typed against an anonymous literal. */
+export interface ColorPopoverProps {
   placement?: Placement
   /** Distance from the trigger, in pixels. */
   gap?: number
@@ -25,7 +22,19 @@ const {
   /** Names the dialog. The trigger promises `aria-haspopup="dialog"`, and a
       dialog with no name is announced as just "dialog" — say which one. */
   ariaLabel?: string
-}>()
+}
+</script>
+
+<script setup lang="ts">
+import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
+import { computed, nextTick, onBeforeUnmount, onMounted, useId, useTemplateRef, watch } from 'vue'
+
+const {
+  placement = 'bottom-start',
+  gap = 8,
+  disabled = false,
+  ariaLabel,
+} = defineProps<ColorPopoverProps>()
 
 defineSlots<{
   trigger(scope: { open: boolean, toggle: () => void, triggerAttrs: Record<string, string> }): unknown
@@ -41,15 +50,14 @@ const panelEl = useTemplateRef('panelEl')
     client, and hydration reports a mismatch on both id and aria-controls. */
 const panelId = useId()
 
-const triggerAttrs = ref<Record<string, string>>({
+/* Derived, not seeded-and-corrected: a watcher only fires on change, so a
+   popover mounted with `open` already true — the case `onMounted` below exists
+   to handle — would render `aria-expanded="false"` until the first toggle. */
+const triggerAttrs = computed<Record<string, string>>(() => ({
   'aria-haspopup': 'dialog',
-  'aria-expanded': 'false',
+  'aria-expanded': open.value ? 'true' : 'false',
   'aria-controls': panelId,
-})
-
-watch(open, (isOpen) => {
-  triggerAttrs.value = { ...triggerAttrs.value, 'aria-expanded': isOpen ? 'true' : 'false' }
-})
+}))
 
 // ─── Positioning ───
 
@@ -73,6 +81,9 @@ function startPositioning() {
   const reference = triggerEl.value
   const floating = panelEl.value
   if (!reference || !floating) return
+  // Idempotent: starting twice without this drops the first registration's
+  // cleanup on the floor, and its scroll/resize observers outlive the close.
+  stopPositioning()
   stopAutoUpdate = autoUpdate(reference, floating, position)
 }
 
@@ -102,6 +113,11 @@ async function syncPopoverState(isOpen: boolean) {
     // otherwise there is nothing to focus yet and the keyboard user is left
     // behind the panel.
     await nextTick()
+    // A close can land during that await — a double click, or a programmatic
+    // dismiss. It runs to completion first, hiding the panel; resuming blind
+    // would then position a hidden panel, register an autoUpdate nothing will
+    // ever cancel, and pull focus into a `display: none` subtree.
+    if (!open.value) return
     startPositioning()
     initialFocus(panel)?.focus()
     return
@@ -134,7 +150,19 @@ function onToggleEvent(event: Event) {
   if (!isOpen && open.value) open.value = false
 }
 
-// ─── Focus containment ───
+// ─── Focus ───
+//
+// Deliberately no Tab trap. `popover="auto"` is non-modal by definition: the
+// page behind stays live and stays reachable, and a trap would give the
+// keyboard a boundary that the pointer and the screen-reader cursor do not
+// share — two navigation models disagreeing about where the dialog ends. The
+// consistent alternatives are both worse here: `aria-modal` plus `inert` on the
+// background buys real modality this UI does not want, and the trap without
+// them was only ever half of it.
+//
+// Nothing needs to replace it. The panel is nested inside the anchor, so
+// document order runs trigger → panel → whatever follows, and Tab already walks
+// into the panel and back out to the right place on its own.
 
 const FOCUSABLE = [
   'a[href]', 'button:not([disabled])', 'input:not([disabled])',
@@ -144,8 +172,8 @@ const FOCUSABLE = [
 /**
  * Tab stops, not merely focusable elements. A roving-tabindex radio is still a
  * `button:not([disabled])`, so the selector alone would hand back every rung of
- * a group that offers exactly one tab stop — and the Tab-wrap logic would then
- * pin `first`/`last` to elements Tab can never reach.
+ * a group that offers exactly one tab stop — and `initialFocus` would then land
+ * on a rung the group did not choose.
  */
 function focusables(panel: HTMLElement): HTMLElement[] {
   return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE))
@@ -162,32 +190,6 @@ function focusables(panel: HTMLElement): HTMLElement[] {
 function initialFocus(panel: HTMLElement): HTMLElement | undefined {
   const items = focusables(panel)
   return items.find(el => el.getAttribute('tabindex') === '0') ?? items[0]
-}
-
-/**
- * A popover lives in the top layer but keeps its place in the tab order, so Tab
- * would walk straight out into the page behind it. Wrap instead.
- */
-function onKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Tab') return
-  const panel = panelEl.value
-  if (!panel) return
-
-  const items = focusables(panel)
-  if (items.length === 0) return
-
-  const first = items[0]!
-  const last = items[items.length - 1]!
-  const active = document.activeElement
-
-  if (event.shiftKey && (active === first || !panel.contains(active))) {
-    event.preventDefault()
-    last.focus()
-  }
-  else if (!event.shiftKey && active === last) {
-    event.preventDefault()
-    first.focus()
-  }
 }
 
 onBeforeUnmount(stopPositioning)
@@ -222,7 +224,6 @@ onBeforeUnmount(stopPositioning)
       role="dialog"
       :aria-label="ariaLabel"
       @toggle="onToggleEvent"
-      @keydown="onKeydown"
     >
       <slot :close="close" />
     </div>

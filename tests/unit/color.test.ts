@@ -68,6 +68,14 @@ describe('hexToHsl', () => {
     // Magenta drives the max === r branch negative before normalisation.
     expect(hexToHsl('#ff00ff')?.h).toBeCloseTo(300, 5)
   })
+
+  it('keeps saturation inside the documented 0-1 range', () => {
+    // The divisor is computed in floating point, and this input overshoots to
+    // 1.0000000000000036 — which surfaces as "100.00000000000036%" for anyone
+    // formatting it as a percentage.
+    expect(hexToHsl('#000001')!.s).toBeLessThanOrEqual(1)
+    expect(hexToHsl('#fffffe')!.s).toBeLessThanOrEqual(1)
+  })
 })
 
 describe('hslToHex', () => {
@@ -206,11 +214,48 @@ describe('the ring invariant', () => {
    * Hue is the one axis that does not survive intact. Eight bits per channel
    * cannot hold a degree of hue apart once the channels bunch together, so a
    * pale or muted rung reads back a degree or four off and regenerates a
-   * neighbouring colour. These are the rungs where that happens; they are the
-   * real, narrow limit of the invariant above, pinned so a widening goes noticed
-   * rather than a shrinking going uncredited.
+   * neighbouring colour — #f1a9a7 in `identity`, #d1a09f and #673532 in `full`,
+   * are the shape of it.
+   *
+   * Naming a few such rungs would only catch the drift narrowing, since a wider
+   * drift leaves them drifting still. So the pin is the census: how many of the
+   * 7,200 rungs fail to regenerate, bucket by bucket. Either direction moves a
+   * number here.
    */
-  it('cannot regenerate the handful of rungs where hue rounds away', () => {
+  it('loses hue on exactly these rungs and no others', () => {
+    const counts: Record<string, number> = {}
+    for (const range of RANGES) {
+      const steps = lightnessSteps(range)
+      const saturations = range === 'full'
+        ? SATURATION_STEPS.map((_, index) => index)
+        : [VIVID_SATURATION_INDEX]
+      for (const s of saturations) {
+        const bucket = `${range} s${s}`
+        counts[bucket] = 0
+        for (let hue = 0; hue < 360; hue += 1) {
+          const shades = shadesFor(hue, s, range)
+          for (let l = 0; l < steps.length; l++) {
+            const shade = shades[l]!
+            const regenerated = shadesFor(resolveAxes(shade, range)!.hue, s, range)
+            if (regenerated[l] !== shade) counts[bucket]++
+          }
+        }
+      }
+    }
+
+    // The drift lives entirely in the muted middle of `full` and in the pale
+    // end of `identity`; the greyscale rung has no hue to lose, and vivid holds
+    // its channels far enough apart to round back cleanly.
+    expect(counts).toEqual({
+      'identity s2': 24,
+      'full s0': 0,
+      'full s1': 144,
+      'full s2': 0,
+    })
+    expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(168)
+  })
+
+  it('names the drifting rungs the census counts', () => {
     const drifting: [ColorRange, number, string][] = [
       ['identity', VIVID_SATURATION_INDEX, '#f1a9a7'],
       ['full', 1, '#d1a09f'],

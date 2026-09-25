@@ -158,14 +158,20 @@ Restyle the footer with `saveClass` / `cancelClass`, or replace it:
 
 ### `<ColorPopover>`
 
-The bundled floating layer: `open` (v-model), `placement`, `gap`, `disabled`.
-Slots `#trigger="{ open, toggle, triggerAttrs }"` and `#default="{ close }"`.
+The bundled floating layer: `open` (v-model), `placement`, `gap`, `disabled`,
+`ariaLabel`. Slots `#trigger="{ open, toggle, triggerAttrs }"` and
+`#default="{ close }"`.
+
+### Types
+
+`ColorPickerProps`, `ColorSurfaceProps` and `ColorPopoverProps` are exported, so
+a wrapper component can be typed without restating them. So is `Placement`,
+which the `placement` prop borrows from Floating UI.
 
 ### Colour maths
 
-`hexToHsl`, `hslToHex`, `isHex`, `expandHex`, `shadesFor`, `resolveAxes`,
-`nearestStepIndex`, `lightnessSteps`, and the step tables — pure, exported,
-usable without the components.
+`hexToHsl`, `hslToHex`, `isHex`, `expandHex`, `shadesFor`, `lightnessSteps` and
+the step tables — pure, exported, usable without the components.
 
 ## Accessibility
 

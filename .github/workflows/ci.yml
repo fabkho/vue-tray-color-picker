@@ -36,8 +36,19 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # Typecheck reads the sources under bundler resolution and would stay green
+      # while the shipped declarations resolve to nothing.
+      - name: Check declarations
+        run: pnpm check:dts
+
       - name: Typecheck
         run: pnpm typecheck
+
+      # The only guard against a `sideEffects` field tree-shaking the entry's
+      # stylesheet away. Running it solely in the Pages workflow catches that
+      # after merge, when it blocks a deploy instead of a review.
+      - name: Build playground
+        run: pnpm build:playground
 
       - name: Test (unit)
         run: pnpm test

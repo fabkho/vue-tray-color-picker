@@ -35,6 +35,28 @@ describe('ColorSurface — the draft is the caller\'s value', () => {
     expect(preview(w)).toContain('#7a8b99')
   })
 
+  it('expands shorthand rather than falling back to the seed', async () => {
+    const w = render({ modelValue: '#fff' })
+    expect(preview(w)).toContain('#ffffff')
+    await w.find('.vtcp-action--primary').trigger('click')
+    expect(committed(w)).toBe('#ffffff')
+  })
+
+  it('falls back only for values that are not a colour at all', () => {
+    expect(preview(render({ modelValue: 'rebeccapurple' }))).toContain('#2b6af8')
+  })
+
+  it('re-resolves the axes when the range changes under it', async () => {
+    // Saturation is pinned outside `full`, but the control that moved it simply
+    // unmounts — leaving a grey index to paint the whole ladder grey.
+    const w = render({ modelValue: '#7a8b99', range: 'full' })
+    await w.findAll('.vtcp-band')[1]!.setValue(0)
+    await w.setProps({ range: 'identity' })
+    expect(shades(w).map(s => s.attributes('aria-label'))).toEqual(
+      shadesFor(resolveAxes('#7a8b99', 'identity')!.hue, VIVID_SATURATION_INDEX, 'identity'),
+    )
+  })
+
   it('emits nothing on cancel', async () => {
     const w = render({ modelValue: '#7a8b99' })
     await w.find('.vtcp-action--secondary').trigger('click')

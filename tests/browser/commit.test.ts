@@ -102,39 +102,64 @@ describe('commit mode — the echo guard', () => {
    * The failure this exists to prevent: our own write returns as `modelValue`,
    * the adopt watch treats it as a new external value and re-snaps the axes,
    * and the control the user is dragging jumps under their finger.
+   *
+   * Most rungs re-snap to themselves, so pinning the guard anywhere would prove
+   * nothing — the watch could fire and land exactly where it started. The rungs
+   * below are chosen from the narrow set where the round trip does *not* close
+   * (`full` at the middle saturation, near hue 0, where eight bits per channel
+   * cannot hold single degrees apart — see the drift pin in the colour unit
+   * tests). There, re-adopting our own write is visible: the hue band jumps a
+   * degree and the ladder regenerates around it.
    */
+  const preview = () =>
+    document.querySelector<HTMLElement>('.vtcp-surface__preview')!.style.getPropertyValue('--preview')
+
   it('leaves the hue where the user put it after the write echoes back', async () => {
-    const { Host, model } = hostFor('#2b6af8', 'immediate')
+    // Muted and barely red: `resolveAxes` reads hue 1, so the surface opens on
+    // the drifting rung rather than snapping to it on the first move.
+    const { Host, model } = hostFor('#673332', 'immediate')
     wrapper = mount(Host, { attachTo: document.body })
 
-    await setBand(hueBand(), '137')
-    // The echo has landed by now — the model holds our own generated colour.
-    expect(model.value).toMatch(/^#[0-9a-f]{6}$/)
-    expect(hueBand().value).toBe('137')
+    await setBand(hueBand(), '4')
+    // Hue 4 generates #673532, which reads back as hue 3 — so a watch that
+    // adopted our own echo would leave the band showing 3.
+    expect(model.value).toBe('#673532')
+    expect(hueBand().value).toBe('4')
+    expect(preview()).toBe('#673532')
   })
 
   it('does not shift the chosen shade when the write echoes back', async () => {
-    const { Host } = hostFor('#2b6af8', 'immediate')
+    const { Host } = hostFor('#673332', 'immediate')
     wrapper = mount(Host, { attachTo: document.body })
 
-    await shades()[4]!.click()
-    const after = ringedIndex()
-    expect(after).toBe(4)
+    await setBand(hueBand(), '2')
+    await shades()[3]!.click()
+    await settle()
 
-    await setBand(hueBand(), '50')
-    expect(ringedIndex()).toBe(4)
+    // #d1a09f reads back as hue 1, whose ladder holds #d19f9f at this rung —
+    // one byte off. Re-adopting the echo would rebuild the ladder around that
+    // hue and leave the shade the user just clicked unringed.
+    expect(preview()).toBe('#d1a09f')
+    expect(hueBand().value).toBe('2')
+    expect(ringedIndex()).toBe(3)
   })
 
   it('keeps the ring on through a sequence of moves', async () => {
-    const { Host } = hostFor('#7a8b99', 'immediate')
+    const { Host } = hostFor('#2b6af8', 'immediate')
     wrapper = mount(Host, { attachTo: document.body })
 
     await shades()[2]!.click()
+    await settle()
+    // A saturated seed matters: on the greyscale rung every hue generates the
+    // same five greys, so the ring would sit still for want of anything moving.
+    let last = preview()
     for (const hue of ['30', '90', '210', '330']) {
       await setBand(hueBand(), hue)
       // Every move regenerates the draft from the axes, so the rung it sits on
-      // must keep matching.
+      // must keep matching — and the draft must actually have moved.
+      expect(preview(), `hue ${hue}`).not.toBe(last)
       expect(ringedIndex(), `hue ${hue}`).toBe(2)
+      last = preview()
     }
   })
 

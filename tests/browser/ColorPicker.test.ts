@@ -45,6 +45,10 @@ afterEach(() => {
   wrapper?.unmount()
   wrapper = null
   localStorage.clear()
+  // In a hook rather than at the end of the tests that set it: a failing
+  // assertion skips the teardown, and the variable then leaks into every test
+  // that runs after it.
+  document.documentElement.style.removeProperty('--brand')
 })
 
 describe('ColorPicker — tray', () => {
@@ -197,7 +201,6 @@ describe('ColorPicker — default colour resolution', () => {
 
     const preview = document.querySelector<HTMLElement>('.vtcp-surface__preview')!
     expect(preview.style.getPropertyValue('--preview')).toBe('#d33e8a')
-    document.documentElement.style.removeProperty('--brand')
   })
 
   it('expands a shorthand default', async () => {
@@ -209,7 +212,6 @@ describe('ColorPicker — default colour resolution', () => {
 
     const preview = document.querySelector<HTMLElement>('.vtcp-surface__preview')!
     expect(preview.style.getPropertyValue('--preview')).toBe('#aabbcc')
-    document.documentElement.style.removeProperty('--brand')
   })
 })
 

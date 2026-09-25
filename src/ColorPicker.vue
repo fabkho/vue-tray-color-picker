@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Placement } from '@floating-ui/dom'
-import type { ColorRange } from './color'
-import type { ColorPickerLabels } from './labels'
-import type { ColorSuggestion } from './suggestions'
+import type { ColorRange } from './color.js'
+import type { ColorPickerLabels } from './labels.js'
+import type { ColorSuggestion } from './suggestions.js'
 
 /* Declared in the plain block rather than inline in `defineProps`, because an
    interface is only nameable from outside the component if it is exported —
@@ -32,13 +32,14 @@ export interface ColorPickerProps {
 </script>
 
 <script setup lang="ts">
+import type { ComponentPublicInstance } from 'vue'
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
 import ColorPopover from './ColorPopover.vue'
 import ColorSurface from './ColorSurface.vue'
-import { expandHex } from './color'
-import { withDefaults as withLabelDefaults } from './labels'
-import { useRecentColors } from './recents'
-import { DEFAULT_SUGGESTIONS } from './suggestions'
+import { expandHex } from './color.js'
+import { withDefaults as withLabelDefaults } from './labels.js'
+import { useRecentColors } from './recents.js'
+import { DEFAULT_SUGGESTIONS } from './suggestions.js'
 
 const {
   modelValue = null,
@@ -141,10 +142,17 @@ function clearColor() {
   trayOpen.value = false
 }
 
-/* Annotated rather than inferred: the ref sits inside the v-for element (the
-   burst wrapper) rather than on it, which is where Volar stops inferring the
-   array. */
-const swatchRefs = useTemplateRef<HTMLButtonElement[]>('swatchRefs')
+/* Indexed by hand rather than collected into a `v-for` ref array. Vue makes no
+   promise that such an array is in source order — it is filled in patch order,
+   and newly mounted elements are appended — so after a reorder (a freshly
+   remembered colour shifting the tail) `refs[i]` and `swatches[i]` are not the
+   same swatch, and an arrow key focuses the wrong one. */
+const swatchEls = new Map<number, HTMLButtonElement>()
+
+function setSwatchRef(el: Element | ComponentPublicInstance | null, index: number) {
+  if (el) swatchEls.set(index, el as HTMLButtonElement)
+  else swatchEls.delete(index)
+}
 
 const selectedIndex = computed(() =>
   swatches.value.findIndex(swatch => isSelected(swatch.value)),
@@ -158,7 +166,7 @@ function selectAt(index: number) {
   const swatch = swatches.value[index]
   if (!swatch) return
   emit('update:modelValue', swatch.value)
-  nextTick(() => swatchRefs.value?.[index]?.focus())
+  nextTick(() => swatchEls.get(index)?.focus())
 }
 
 /**
@@ -169,8 +177,10 @@ function selectAt(index: number) {
  * never was.
  */
 function focusedIndex() {
-  const index = swatchRefs.value?.indexOf(document.activeElement as HTMLButtonElement) ?? -1
-  return index === -1 ? activeIndex.value : index
+  for (const [index, el] of swatchEls) {
+    if (el === document.activeElement) return index
+  }
+  return activeIndex.value
 }
 
 function moveSelection(offset: number) {
@@ -304,14 +314,19 @@ watch(surfaceOpen, (open) => {
           role="radiogroup"
           :aria-label="t.selectColor"
         >
+          <!-- The burst wrapper sits between the group and its radios, which
+               breaks the ownership a radiogroup is required to have over them.
+               `role="none"` takes the span out of the tree so they read as
+               direct children again. -->
           <span
             v-for="(swatch, index) in swatches"
             :key="swatch.value"
+            role="none"
             class="vtcp-tray__item"
             :style="{ '--burst-i': swatchOffset + index }"
           >
             <button
-              ref="swatchRefs"
+              :ref="el => setSwatchRef(el, index)"
               type="button"
               role="radio"
               class="vtcp-swatch"
